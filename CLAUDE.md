@@ -78,6 +78,16 @@ Finishing keeps the item's segments — they carry the timestamps the calendar
 and analysis need — and the log entry stores identity only, with its duration
 derived from those segments at render time.
 
+A manually added completed entry gets a **synthetic segment** ending at the
+moment it was added, rather than a duration field of its own, so every entry's
+duration derives the same way. Those segments carry `manual: true`, because
+their start and end are assumed rather than observed — the calendar and the
+switching analysis must not read them as evidence of when work actually
+happened. Deleting a log entry deletes its segments too.
+
+Day totals sum stored milliseconds per `kind` and are never parsed back out of
+formatted strings.
+
 The analog clock shows position within the current 60-minute cycle: the second
 hand from `ms % 60000`, the minute hand from `ms % 3600000`. Both wrap on their
 own, which is why no hour hand is needed. The digital readout is the authority
@@ -151,9 +161,11 @@ for abstractions: write the direct version first.
   - `formatClock` — the live timer readout, counting like a stopwatch: `MM:SS`
     below an hour, `HH:MM:SS` from an hour onward. Nothing resets at the
     boundary.
-  - `formatCompact` — at-a-glance totals in the log and summaries: **at most
-    two units**, largest first, zero tail dropped. `1h 20m`, `1m 20s`, `30s`;
-    3600s reads `1h`, not `1h 0m`. Hours is the largest unit; there are no days.
+  - `formatHuman` — completed durations and totals, spelled out: `2 hrs 15 min
+    30 sec`. Zero-value units are omitted **anywhere** in the string, so an hour
+    and five seconds reads `2 hrs 5 sec` with the empty minutes skipped. Exactly
+    zero reads `0 sec`. Only the hour unit pluralises (`1 hr` / `2 hrs`); `min`
+    and `sec` never change.
 
 ## MVP boundaries
 

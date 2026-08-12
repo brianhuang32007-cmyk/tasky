@@ -31,6 +31,10 @@
      grow as items are added, so the list scrolls inside this instead. Chosen to
      land the two work-zone columns at roughly the same height. */
   --list-h: 280px;
+
+  /* Same idea for the completed log: it scrolls rather than stretching the
+     page, and the totals sit outside it so they stay visible. */
+  --log-h: 236px;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -396,11 +400,18 @@ body {
 
 /* --- Completed log ------------------------------------------------------- */
 
+/* Fixed height so a long day scrolls here instead of stretching the page.
+   Must come after .panel-body, whose flex:1 would otherwise win. */
+[data-region="log"] {
+  flex: none;
+  height: var(--log-h);
+}
+
 .log-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 8px 6px 8px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
@@ -425,6 +436,143 @@ body {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+/* --- Log footer: manual entry and totals --------------------------------- */
+
+.log-footer {
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Deliberately quieter than the log itself: smaller controls, muted chrome. */
+.manual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.manual-name {
+  flex: 1 1 190px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.manual-name::placeholder { color: var(--muted); }
+
+.manual-name:focus-visible,
+.manual-duration input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.segmented-sm { padding: 1px; }
+.segmented-sm .seg span {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.manual-duration {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.manual-duration input {
+  width: 46px;
+  padding: 7px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Spinners crowd inputs this small. */
+.manual-duration input::-webkit-outer-spin-button,
+.manual-duration input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.manual-duration input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.btn-manual {
+  flex: none;
+  padding: 7px 15px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-manual:hover { background: var(--accent-soft); }
+
+.btn-manual:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.manual-hint {
+  min-height: 16px;
+  margin: 6px 2px 0;
+  font-size: 12px;
+  color: var(--alert);
+}
+
+/* Stronger than a log row, quieter than the timer. */
+.totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.total {
+  display: flex;
+  flex: 1 1 200px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 9px 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--accent-soft);
+}
+
+.total-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.total-value {
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
   color: var(--accent-strong);
 }
 

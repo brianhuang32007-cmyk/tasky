@@ -9,7 +9,7 @@
 import { emptyState } from './storage.js';
 import {
   formatClock,
-  formatCompact,
+  formatHuman,
   secondHandAngle,
   minuteHandAngle,
 } from './time.js';
@@ -31,6 +31,10 @@ const minuteHand = document.querySelector('[data-region="minute-hand"]');
 const secondHand = document.querySelector('[data-region="second-hand"]');
 const ticksGroup = document.querySelector('[data-region="ticks"]');
 const logRegion = document.querySelector('[data-region="log"]');
+const manualForm = document.querySelector('[data-form="manual"]');
+const manualHint = document.querySelector('[data-region="manual-hint"]');
+const totalTaskRegion = document.querySelector('[data-region="total-task"]');
+const totalBreakRegion = document.querySelector('[data-region="total-break"]');
 
 // randomUUID needs a secure context. file:// qualifies in Chrome, but the
 // standalone preview bundle should not break anywhere it does not.
@@ -126,6 +130,44 @@ function finishItem() {
   state.selectedId = null;
 }
 
+/**
+ * A completed entry the user never timed. It gets a synthetic segment rather
+ * than a duration field of its own, so duration stays derived from segments
+ * for every entry alike. The segment is marked manual because its start and
+ * end are assumed, not observed — the calendar should not read it as evidence
+ * of when the work actually happened.
+ */
+function addManualEntry(name, kind, ms) {
+  const itemId = newId();
+  const endedAt = Date.now();
+
+  state.segments.push({
+    id: newId(),
+    itemId,
+    startedAt: endedAt - ms,
+    endedAt,
+    manual: true,
+  });
+
+  state.log.unshift({ id: newId(), itemId, name, kind, finishedAt: endedAt });
+}
+
+function deleteLogEntry(logId) {
+  const entry = state.log.find((e) => e.id === logId);
+  if (!entry) return;
+
+  state.log = state.log.filter((e) => e.id !== logId);
+  // Drop its segments too, or the time would linger with nothing pointing at it.
+  state.segments = state.segments.filter((seg) => seg.itemId !== entry.itemId);
+}
+
+/** Summed from stored millisecond values, never parsed back from the display. */
+function totalFor(kind) {
+  return state.log
+    .filter((entry) => entry.kind === kind)
+    .reduce((sum, entry) => sum + elapsedMs(entry.itemId), 0);
+}
+
 // --- rendering -----------------------------------------------------------
 
 function badge(kind) {
@@ -206,6 +248,7 @@ function renderItems() {
 function logRow(entry) {
   const li = document.createElement('li');
   li.className = 'log-row';
+  li.dataset.logId = entry.id;
 
   const name = document.createElement('span');
   name.className = 'log-name';
@@ -214,27 +257,34 @@ function logRow(entry) {
 
   const duration = document.createElement('span');
   duration.className = 'log-duration';
-  duration.textContent = formatCompact(elapsedMs(entry.itemId));
+  duration.textContent = formatHuman(elapsedMs(entry.itemId));
 
   const done = document.createElement('span');
   done.className = 'log-done';
   done.textContent = 'Done';
 
-  li.append(name, badge(entry.kind), duration, done);
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'item-delete';
+  remove.setAttribute('aria-label', `Delete ${entry.name} from the log`);
+  remove.append(deleteIcon());
+
+  li.append(name, badge(entry.kind), duration, done, remove);
   return li;
 }
 
 function renderLog() {
   if (state.log.length === 0) {
-    logRegion.replaceChildren(
-      placeholder('Finished items — name, duration, type, status'),
-    );
-    return;
+    logRegion.replaceChildren(placeholder('No completed tasks yet.'));
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'items';
+    list.append(...state.log.map(logRow));
+    logRegion.replaceChildren(list);
   }
-  const list = document.createElement('ul');
-  list.className = 'items';
-  list.append(...state.log.map(logRow));
-  logRegion.replaceChildren(list);
+
+  totalTaskRegion.textContent = formatHuman(totalFor('task'));
+  totalBreakRegion.textContent = formatHuman(totalFor('break'));
 }
 
 function controlButton(label, action, variant) {
@@ -399,6 +449,47 @@ itemsRegion.addEventListener('click', (event) => {
     selectItem(row.dataset.id);
     render();
   }
+});
+
+logRegion.addEventListener('click', (event) => {
+  const row = event.target.closest('.log-row');
+  if (!row || !event.target.closest('.item-delete')) return;
+
+  deleteLogEntry(row.dataset.logId);
+  render();
+});
+
+manualForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+
+  const fields = manualForm.elements;
+  const name = fields.name.value.trim();
+  // Values are not clamped to 59: 90 minutes simply becomes 1 hr 30 min.
+  const unit = (field) => Math.max(0, Math.floor(Number(fields[field].value) || 0));
+  const ms = ((unit('hours') * 60 + unit('minutes')) * 60 + unit('seconds')) * 1000;
+
+  if (name === '') {
+    manualHint.textContent = 'Give the entry a name first.';
+    fields.name.focus();
+    return;
+  }
+
+  if (ms === 0) {
+    manualHint.textContent = 'Add a duration in hours, minutes, or seconds.';
+    fields.hours.focus();
+    return;
+  }
+
+  addManualEntry(name, fields.kind.value, ms);
+
+  manualForm.reset();
+  manualHint.textContent = '';
+  render();
+  fields.name.focus();
+});
+
+manualForm.addEventListener('input', () => {
+  manualHint.textContent = '';
 });
 
 controlsRegion.addEventListener('click', (event) => {

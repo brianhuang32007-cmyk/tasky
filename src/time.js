@@ -2,8 +2,8 @@
 // no DOM.
 //
 // Two formats exist on purpose:
-//   formatClock   the live timer readout, counting like a stopwatch
-//   formatCompact at-a-glance totals in the log, per the rule in CLAUDE.md
+//   formatClock the live timer readout, counting like a stopwatch
+//   formatHuman completed durations and totals, spelled out in words
 
 const MINUTE = 60_000;
 const HOUR = 3_600_000;
@@ -27,12 +27,20 @@ export function formatClock(ms) {
     : `${pad(minutes)}:${pad(seconds)}`;
 }
 
-/** At most two units, largest first, zero tail dropped: 1h 20m, 4m 5s, 30s. */
-export function formatCompact(ms) {
+/**
+ * Spelled out, zero-value units omitted anywhere in the string — so an hour
+ * and five seconds reads "2 hrs 5 sec", skipping the empty minutes. Exactly
+ * zero reads "0 sec". Only "hr" pluralises; min and sec stay abbreviated.
+ */
+export function formatHuman(ms) {
   const { hours, minutes, seconds } = parts(ms);
-  if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  if (minutes > 0) return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
-  return `${seconds}s`;
+  const out = [];
+
+  if (hours > 0) out.push(`${hours} ${hours === 1 ? 'hr' : 'hrs'}`);
+  if (minutes > 0) out.push(`${minutes} min`);
+  if (seconds > 0) out.push(`${seconds} sec`);
+
+  return out.length > 0 ? out.join(' ') : '0 sec';
 }
 
 // The clock shows position within the current 60-minute cycle, so both hands

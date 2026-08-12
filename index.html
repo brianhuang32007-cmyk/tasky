@@ -150,7 +150,58 @@
   <section class="panel" aria-labelledby="log-heading">
     <h2 id="log-heading" class="panel-title">Completed log</h2>
     <div class="panel-body" data-region="log">
-      <p class="placeholder">Finished items — name, duration, type, status</p>
+      <p class="placeholder">No completed tasks yet.</p>
+    </div>
+
+    <!-- Outside the scrolling body, so the totals stay put however long the
+         list gets. -->
+    <div class="log-footer">
+
+      <form class="manual" data-form="manual">
+        <input
+          class="manual-name"
+          type="text"
+          name="name"
+          placeholder="Add something you already did"
+          autocomplete="off"
+          aria-label="Completed item name">
+
+        <div class="segmented segmented-sm" role="radiogroup" aria-label="Item type">
+          <label class="seg">
+            <input type="radio" name="kind" value="task" checked>
+            <span>Task</span>
+          </label>
+          <label class="seg">
+            <input type="radio" name="kind" value="break">
+            <span>Break</span>
+          </label>
+        </div>
+
+        <div class="manual-duration">
+          <input type="number" name="hours" min="0" placeholder="0" aria-label="Hours">
+          <span>hr</span>
+          <input type="number" name="minutes" min="0" placeholder="0" aria-label="Minutes">
+          <span>min</span>
+          <input type="number" name="seconds" min="0" placeholder="0" aria-label="Seconds">
+          <span>sec</span>
+        </div>
+
+        <button class="btn-manual" type="submit">Add</button>
+      </form>
+
+      <p class="manual-hint" data-region="manual-hint" role="status" aria-live="polite"></p>
+
+      <div class="totals">
+        <p class="total">
+          <span class="total-label">Total Task Time</span>
+          <span class="total-value" data-region="total-task">0 sec</span>
+        </p>
+        <p class="total">
+          <span class="total-label">Total Break Time</span>
+          <span class="total-value" data-region="total-break">0 sec</span>
+        </p>
+      </div>
+
     </div>
   </section>
 
