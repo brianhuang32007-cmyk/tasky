@@ -9,8 +9,53 @@
 <body>
 
 <header class="topbar">
-  <h1 class="wordmark">Tasky</h1>
-  <p class="tagline">What you worked on, and where the time went.</p>
+  <div class="brand">
+
+    <svg class="mascot" viewBox="0 0 64 64" role="img" aria-label="Tasky the tiger">
+      <!-- ears -->
+      <circle cx="16" cy="18" r="8.5" fill="var(--accent)"/>
+      <circle cx="48" cy="18" r="8.5" fill="var(--accent)"/>
+      <circle cx="16" cy="18" r="4.2" fill="var(--accent-soft)"/>
+      <circle cx="48" cy="18" r="4.2" fill="var(--accent-soft)"/>
+
+      <ellipse cx="32" cy="35" rx="22" ry="20" fill="var(--accent)"/>
+
+      <!-- forehead and cheek stripes -->
+      <g stroke="var(--fur-stripe)" stroke-width="2.6" stroke-linecap="round" fill="none">
+        <path d="M32 16.5v6"/>
+        <path d="M24.5 18.5 23 24"/>
+        <path d="M39.5 18.5 41 24"/>
+        <path d="M11.6 31.4c2.4.7 4.3 1 5.9 1.1"/>
+        <path d="M12.1 38.6c2.4-.2 4.3-.5 5.9-1.1"/>
+        <path d="M52.4 31.4c-2.4.7-4.3 1-5.9 1.1"/>
+        <path d="M51.9 38.6c-2.4-.2-4.3-.5-5.9-1.1"/>
+      </g>
+
+      <!-- muzzle -->
+      <ellipse cx="26.6" cy="43.4" rx="7.2" ry="5.6" fill="var(--accent-soft)"/>
+      <ellipse cx="37.4" cy="43.4" rx="7.2" ry="5.6" fill="var(--accent-soft)"/>
+
+      <!-- eyes -->
+      <ellipse cx="24" cy="33" rx="3.1" ry="3.5" fill="var(--text)"/>
+      <ellipse cx="40" cy="33" rx="3.1" ry="3.5" fill="var(--text)"/>
+      <circle cx="22.9" cy="31.7" r="1.15" fill="#fff"/>
+      <circle cx="38.9" cy="31.7" r="1.15" fill="#fff"/>
+
+      <!-- nose and smile -->
+      <path d="M28.6 38.4c1-.8 5.8-.8 6.8 0 .5 2.6-2 4.4-3.4 4.4s-3.9-1.8-3.4-4.4Z" fill="var(--nose)"/>
+      <g stroke="var(--text)" stroke-width="1.6" stroke-linecap="round" fill="none">
+        <path d="M32 42.8v2.3"/>
+        <path d="M32 45.1c-.6 1.9-3.2 2.3-4.4.8"/>
+        <path d="M32 45.1c.6 1.9 3.2 2.3 4.4.8"/>
+      </g>
+    </svg>
+
+    <div class="brand-text">
+      <h1 class="wordmark">Tasky</h1>
+      <p class="tagline">What you worked on, and where the time went.</p>
+    </div>
+
+  </div>
 </header>
 
 <!-- Work zone: fills the screen, never scrolls. Everything needed to capture

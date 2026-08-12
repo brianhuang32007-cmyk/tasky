@@ -13,9 +13,14 @@
   --accent-strong: #dc7716;
   --accent-soft: #fceedd;
 
+  /* Mascot */
+  --fur-stripe: #a85514;
+  --nose: #c9603a;
+
   --radius: 12px;
   --gap: 16px;
-  --topbar-h: 62px;
+  /* The work zone's height is derived from this — keep them in step. */
+  --topbar-h: 92px;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -32,21 +37,39 @@ body {
 
 .topbar {
   height: var(--topbar-h);
-  padding: 12px var(--gap);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--gap);
   border-bottom: 1px solid var(--border);
   background: var(--bg);
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mascot {
+  width: 52px;
+  height: 52px;
+  flex: none;
+}
+
+.brand-text { text-align: left; }
+
 .wordmark {
   margin: 0;
-  font-size: 20px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--accent-strong);
 }
 
 .tagline {
-  margin: 1px 0 0;
+  margin: 2px 0 0;
   font-size: 13px;
   color: var(--muted);
 }
