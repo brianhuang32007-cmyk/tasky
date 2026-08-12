@@ -54,8 +54,34 @@ its segments — never a stored counter kept alongside them. Two reasons:
 
 Timing rule: **never accumulate time by counting interval ticks.** Intervals
 drift and browsers throttle them in background tabs. Store `startedAt`, and
-compute elapsed as `now - startedAt` plus banked segments. The interval exists
-only to trigger a repaint.
+compute elapsed as `now - startedAt` plus banked segments. The animation frame
+exists only to trigger a repaint.
+
+### Timer state
+
+`runningSince` is the whole timer state — a timestamp when running, `null` when
+not. There is no separate `isRunning` flag and no per-item timer, which is what
+makes "only one item can run at once" true by construction rather than by
+enforcement. The run always belongs to `selectedId`.
+
+Starting sets `runningSince`. Pausing, switching, and finishing all **bank** the
+open run into a segment and clear it. Deleting the selected item discards the
+open run instead, along with that item's segments — a deleted item never
+happened. Reset drops the selected item's segments and leaves it selected.
+
+The controls follow from state, not from a mode variable: running shows Pause;
+not running with time on the clock shows Continue and Reset; not running with a
+clean slate shows Start. That third case is why returning to an item timed
+earlier correctly offers Continue.
+
+Finishing keeps the item's segments — they carry the timestamps the calendar
+and analysis need — and the log entry stores identity only, with its duration
+derived from those segments at render time.
+
+The analog clock shows position within the current 60-minute cycle: the second
+hand from `ms % 60000`, the minute hand from `ms % 3600000`. Both wrap on their
+own, which is why no hour hand is needed. The digital readout is the authority
+on total elapsed time.
 
 ## Layout contract
 
@@ -120,9 +146,14 @@ for abstractions: write the direct version first.
   second copy of anything that can be derived.
 - Colour, spacing, and radius come from the custom properties in `styles.css`.
   No hard-coded hex values in new rules.
-- Durations display **at most two units**, largest first, **truncated, never
-  rounded up**: `1h 20m`, `1m 20s`, `30s`. Drop a zero tail — 3600s reads `1h`,
-  not `1h 0m`. Hours is the largest unit; there are no days.
+- Durations have **two formats**, both in `src/time.js`, both truncating and
+  never rounding up:
+  - `formatClock` — the live timer readout, counting like a stopwatch: `MM:SS`
+    below an hour, `HH:MM:SS` from an hour onward. Nothing resets at the
+    boundary.
+  - `formatCompact` — at-a-glance totals in the log and summaries: **at most
+    two units**, largest first, zero tail dropped. `1h 20m`, `1m 20s`, `30s`;
+    3600s reads `1h`, not `1h 0m`. Hours is the largest unit; there are no days.
 
 ## MVP boundaries
 

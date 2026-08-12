@@ -1,10 +1,20 @@
-// Item capture and the unfinished list.
+// Item capture, the unfinished list, and the one central timer.
 //
-// Items live in memory only for this milestone — persistence, selection,
-// deletion, and the timer come later. emptyState() is imported so the item
-// shape has one owner rather than being redefined here.
+// Time is never accumulated by counting ticks. A run records the moment it
+// started; elapsed time is always computed from timestamps, so a throttled or
+// backgrounded tab cannot lose time. The animation frame only repaints.
+//
+// Persistence, the calendar, AI, and reminders are later milestones.
 
 import { emptyState } from './storage.js';
+import {
+  formatClock,
+  formatCompact,
+  secondHandAngle,
+  minuteHandAngle,
+} from './time.js';
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const state = emptyState();
 
@@ -13,6 +23,14 @@ const nameInput = form.elements.name;
 const hint = document.querySelector('[data-region="capture-hint"]');
 const itemsRegion = document.querySelector('[data-region="items"]');
 const statusRegion = document.querySelector('[data-region="status"]');
+const timerItemRegion = document.querySelector('[data-region="timer-item"]');
+const digitalRegion = document.querySelector('[data-region="digital"]');
+const controlsRegion = document.querySelector('[data-region="controls"]');
+const finishButton = document.querySelector('[data-action="finish"]');
+const minuteHand = document.querySelector('[data-region="minute-hand"]');
+const secondHand = document.querySelector('[data-region="second-hand"]');
+const ticksGroup = document.querySelector('[data-region="ticks"]');
+const logRegion = document.querySelector('[data-region="log"]');
 
 // randomUUID needs a secure context. file:// qualifies in Chrome, but the
 // standalone preview bundle should not break anywhere it does not.
@@ -20,33 +38,111 @@ const newId = () =>
   crypto.randomUUID?.() ??
   `i${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
+const selectedItem = () => state.items.find((i) => i.id === state.selectedId);
+
+// --- time ----------------------------------------------------------------
+
+/** Banked segments, plus the run in progress if this item owns it. */
+function elapsedMs(itemId, now = Date.now()) {
+  let total = 0;
+  for (const seg of state.segments) {
+    if (seg.itemId === itemId) total += seg.endedAt - seg.startedAt;
+  }
+  if (state.runningSince !== null && state.selectedId === itemId) {
+    total += now - state.runningSince;
+  }
+  return total;
+}
+
+/** Closes the open run into a segment. Safe to call when nothing is running. */
+function bankRunningSegment() {
+  if (state.runningSince === null) return;
+  const endedAt = Date.now();
+  if (state.selectedId && endedAt > state.runningSince) {
+    state.segments.push({
+      id: newId(),
+      itemId: state.selectedId,
+      startedAt: state.runningSince,
+      endedAt,
+    });
+  }
+  state.runningSince = null;
+}
+
+// --- mutations -----------------------------------------------------------
+
 function addItem(name, kind) {
   state.items.push({ id: newId(), name, kind, createdAt: Date.now() });
 }
 
 function selectItem(id) {
-  state.selectedId = id;
+  if (id === state.selectedId) return;
+  bankRunningSegment(); // switching banks the outgoing item's time
+  state.selectedId = id; // never auto-starts the incoming item
 }
 
 function deleteItem(id) {
-  state.items = state.items.filter((item) => item.id !== id);
+  // The item is going away, so its open run is discarded rather than banked.
+  if (state.selectedId === id) state.runningSince = null;
 
-  // Only the deleted item's own selection is cleared; any other selection stands.
+  state.items = state.items.filter((item) => item.id !== id);
+  state.segments = state.segments.filter((seg) => seg.itemId !== id);
+
   if (state.selectedId === id) state.selectedId = null;
 }
 
+function startTimer() {
+  if (!state.selectedId || state.runningSince !== null) return;
+  state.runningSince = Date.now();
+}
+
+function pauseTimer() {
+  bankRunningSegment();
+}
+
+function resetTimer() {
+  if (!state.selectedId) return;
+  state.runningSince = null;
+  state.segments = state.segments.filter((seg) => seg.itemId !== state.selectedId);
+}
+
+function finishItem() {
+  const item = selectedItem();
+  if (!item) return;
+
+  bankRunningSegment(); // the final stretch counts
+
+  // Segments are kept: they carry the timestamps the calendar and analysis
+  // need, and the log entry's duration is derived from them.
+  state.log.unshift({
+    id: newId(),
+    itemId: item.id,
+    name: item.name,
+    kind: item.kind,
+    finishedAt: Date.now(),
+  });
+
+  state.items = state.items.filter((i) => i.id !== item.id);
+  state.selectedId = null;
+}
+
 // --- rendering -----------------------------------------------------------
-// Built with createElement rather than innerHTML: item names are user text and
-// must never be parsed as markup.
+
+function badge(kind) {
+  const el = document.createElement('span');
+  el.className = `badge badge-${kind}`;
+  el.textContent = kind === 'break' ? 'Break' : 'Task';
+  return el;
+}
 
 const CROSS = 'M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5';
 
 function deleteIcon() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('viewBox', '0 0 16 16');
   svg.setAttribute('aria-hidden', 'true');
 
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const path = document.createElementNS(SVG_NS, 'path');
   path.setAttribute('d', CROSS);
   path.setAttribute('stroke', 'currentColor');
   path.setAttribute('stroke-width', '1.8');
@@ -74,11 +170,7 @@ function itemRow(item) {
   name.textContent = item.name;
   name.title = item.name; // full text stays reachable when the row truncates
 
-  const badge = document.createElement('span');
-  badge.className = `badge badge-${item.kind}`;
-  badge.textContent = item.kind === 'break' ? 'Break' : 'Task';
-
-  select.append(name, badge);
+  select.append(name, badge(item.kind));
 
   const remove = document.createElement('button');
   remove.type = 'button';
@@ -90,16 +182,16 @@ function itemRow(item) {
   return li;
 }
 
-function emptyMessage() {
+function placeholder(text) {
   const p = document.createElement('p');
   p.className = 'placeholder';
-  p.textContent = 'No unfinished tasks yet.';
+  p.textContent = text;
   return p;
 }
 
-function render() {
+function renderItems() {
   if (state.items.length === 0) {
-    itemsRegion.replaceChildren(emptyMessage());
+    itemsRegion.replaceChildren(placeholder('No unfinished tasks yet.'));
   } else {
     const list = document.createElement('ul');
     list.className = 'items';
@@ -109,6 +201,151 @@ function render() {
 
   const n = state.items.length;
   statusRegion.textContent = `${n} unfinished item${n === 1 ? '' : 's'}`;
+}
+
+function logRow(entry) {
+  const li = document.createElement('li');
+  li.className = 'log-row';
+
+  const name = document.createElement('span');
+  name.className = 'log-name';
+  name.textContent = entry.name;
+  name.title = entry.name;
+
+  const duration = document.createElement('span');
+  duration.className = 'log-duration';
+  duration.textContent = formatCompact(elapsedMs(entry.itemId));
+
+  const done = document.createElement('span');
+  done.className = 'log-done';
+  done.textContent = 'Done';
+
+  li.append(name, badge(entry.kind), duration, done);
+  return li;
+}
+
+function renderLog() {
+  if (state.log.length === 0) {
+    logRegion.replaceChildren(
+      placeholder('Finished items — name, duration, type, status'),
+    );
+    return;
+  }
+  const list = document.createElement('ul');
+  list.className = 'items';
+  list.append(...state.log.map(logRow));
+  logRegion.replaceChildren(list);
+}
+
+function controlButton(label, action, variant) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `btn ${variant}`;
+  button.dataset.action = action;
+  button.textContent = label;
+  return button;
+}
+
+/** Rebuilt only on state change, never per frame — it would eat focus. */
+function renderControls() {
+  const item = selectedItem();
+
+  if (!item) {
+    const start = controlButton('Start', 'start', 'btn-primary');
+    start.disabled = true;
+    controlsRegion.replaceChildren(start);
+    finishButton.disabled = true;
+    return;
+  }
+
+  finishButton.disabled = false;
+
+  if (state.runningSince !== null) {
+    controlsRegion.replaceChildren(controlButton('Pause', 'pause', 'btn-primary'));
+    return;
+  }
+
+  // Anything with time on the clock resumes rather than starts, which also
+  // covers returning to an item timed earlier.
+  if (elapsedMs(item.id) > 0) {
+    controlsRegion.replaceChildren(
+      controlButton('Continue', 'start', 'btn-primary'),
+      controlButton('Reset', 'reset', 'btn-secondary'),
+    );
+    return;
+  }
+
+  controlsRegion.replaceChildren(controlButton('Start', 'start', 'btn-primary'));
+}
+
+function renderTimerItem() {
+  const item = selectedItem();
+
+  if (!item) {
+    const empty = document.createElement('span');
+    empty.className = 'timer-empty';
+    empty.textContent = 'Select a task to begin';
+    timerItemRegion.replaceChildren(empty);
+    return;
+  }
+
+  const name = document.createElement('span');
+  name.className = 'timer-name';
+  name.textContent = item.name;
+  name.title = item.name;
+
+  timerItemRegion.replaceChildren(name, badge(item.kind));
+}
+
+/** The only thing that runs every frame: digital text and two hand angles. */
+function paintTimer() {
+  const ms = state.selectedId ? elapsedMs(state.selectedId) : 0;
+
+  digitalRegion.textContent = formatClock(ms);
+  minuteHand.setAttribute('transform', `rotate(${minuteHandAngle(ms)} 60 60)`);
+  secondHand.setAttribute('transform', `rotate(${secondHandAngle(ms)} 60 60)`);
+}
+
+function render() {
+  renderItems();
+  renderTimerItem();
+  renderControls();
+  renderLog();
+  paintTimer();
+  syncLoop();
+}
+
+// --- animation -----------------------------------------------------------
+
+let frame = null;
+
+function syncLoop() {
+  const shouldRun = state.runningSince !== null;
+  if (shouldRun && frame === null) {
+    frame = requestAnimationFrame(function step() {
+      paintTimer();
+      frame = requestAnimationFrame(step);
+    });
+  } else if (!shouldRun && frame !== null) {
+    cancelAnimationFrame(frame);
+    frame = null;
+  }
+}
+
+function buildTicks() {
+  for (let i = 0; i < 12; i += 1) {
+    const angle = (i * 30 * Math.PI) / 180;
+    const sin = Math.sin(angle);
+    const cos = Math.cos(angle);
+
+    const tick = document.createElementNS(SVG_NS, 'line');
+    tick.setAttribute('class', 'clock-tick');
+    tick.setAttribute('x1', String(60 + sin * 44));
+    tick.setAttribute('y1', String(60 - cos * 44));
+    tick.setAttribute('x2', String(60 + sin * 49));
+    tick.setAttribute('y2', String(60 - cos * 49));
+    ticksGroup.append(tick);
+  }
 }
 
 // --- feedback ------------------------------------------------------------
@@ -164,4 +401,21 @@ itemsRegion.addEventListener('click', (event) => {
   }
 });
 
+controlsRegion.addEventListener('click', (event) => {
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (!action) return;
+
+  if (action === 'start') startTimer();
+  else if (action === 'pause') pauseTimer();
+  else if (action === 'reset') resetTimer();
+
+  render();
+});
+
+finishButton.addEventListener('click', () => {
+  finishItem();
+  render();
+});
+
+buildTicks();
 render();

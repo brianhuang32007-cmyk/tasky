@@ -113,7 +113,30 @@
     <section class="panel panel-grow panel-timer" aria-labelledby="timer-heading">
       <h2 id="timer-heading" class="panel-title">Timer</h2>
       <div class="panel-body" data-region="timer">
-        <p class="placeholder">Central timer for the selected item</p>
+        <div class="timer">
+
+          <p class="timer-item" data-region="timer-item"></p>
+
+          <p class="timer-digital" data-region="digital">00:00</p>
+
+          <!-- One 60-minute cycle. No hour hand: the digital readout above is
+               the authority on total elapsed time. -->
+          <svg class="clock" viewBox="0 0 120 120" role="img"
+               aria-label="Elapsed time within the current hour">
+            <circle class="clock-face" cx="60" cy="60" r="54"/>
+            <g data-region="ticks"></g>
+            <line class="hand hand-minute" data-region="minute-hand"
+                  x1="60" y1="60" x2="60" y2="28"/>
+            <line class="hand hand-second" data-region="second-hand"
+                  x1="60" y1="66" x2="60" y2="20"/>
+            <circle class="clock-cap" cx="60" cy="60" r="3.5"/>
+          </svg>
+
+          <div class="timer-controls" data-region="controls"></div>
+
+          <button class="btn-finish" type="button" data-action="finish">Finish Task</button>
+
+        </div>
       </div>
     </section>
   </div>

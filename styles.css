@@ -248,6 +248,173 @@ body {
   color: var(--alert);
 }
 
+/* --- Timer --------------------------------------------------------------- */
+
+.timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.timer-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 100%;
+  margin: 0;
+  min-height: 24px;
+}
+
+.timer-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer-empty {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Tabular figures stop the readout jittering as digits change. */
+.timer-digital {
+  margin: 0;
+  font-size: 46px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.clock {
+  width: 176px;
+  height: 176px;
+}
+
+.clock-face {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.clock-tick {
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.hand { stroke-linecap: round; }
+
+.hand-minute {
+  stroke: var(--accent-strong);
+  stroke-width: 4.5;
+}
+
+.hand-second {
+  stroke: var(--nose);
+  stroke-width: 2;
+}
+
+.clock-cap { fill: var(--accent-strong); }
+
+.timer-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 9px 22px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.btn-primary:hover:not(:disabled) { background: var(--accent-strong); }
+
+.btn-secondary {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--accent-strong);
+}
+
+.btn-secondary:hover:not(:disabled) { border-color: var(--accent); }
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible,
+.btn-finish:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.btn-finish {
+  padding: 9px 22px;
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--accent-strong);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-finish:hover:not(:disabled) { background: var(--surface); }
+
+.btn-finish:disabled {
+  opacity: 0.45;
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* --- Completed log ------------------------------------------------------- */
+
+.log-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.log-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-duration {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.log-done {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
 /* --- Unfinished list ----------------------------------------------------- */
 
 .items {
