@@ -92,6 +92,23 @@ python3 -m http.server 8000
 
 Then open <http://localhost:8000>. There is no other build or start command.
 
+### Reviewing progress
+
+Brian reviews each step by opening a file in Chrome, so **after every change,
+regenerate the standalone bundle and hand it to him**:
+
+```bash
+python3 tools/build_preview.py
+```
+
+That writes `preview.html` — the stylesheet and the whole module graph inlined
+into one file with no external references, so it opens straight from `file://`.
+`index.html` cannot be double-clicked: Chrome blocks ES modules over `file://`
+and the app would render but never run.
+
+`preview.html` is generated and gitignored. It is a snapshot for review, never
+an input — nothing imports it, and edits belong in `index.html` and `src/`.
+
 Add a dependency only when it solves a problem that has actually appeared. Same
 for abstractions: write the direct version first.
 

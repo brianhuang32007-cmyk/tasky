@@ -1,2 +1,5 @@
 .DS_Store
 *.log
+
+# Generated snapshot for review — rebuild with tools/build_preview.py
+preview.html
