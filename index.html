@@ -69,14 +69,42 @@
     <section class="panel" aria-labelledby="capture-heading">
       <h2 id="capture-heading" class="panel-title">Add an item</h2>
       <div class="panel-body" data-region="capture">
-        <p class="placeholder">Task input</p>
+
+        <!-- A real <form> so Enter submits natively and reset() restores the
+             default type without extra bookkeeping. -->
+        <form class="capture" data-form="capture">
+          <input
+            class="capture-name"
+            type="text"
+            name="name"
+            placeholder="What are you working on?"
+            autocomplete="off"
+            aria-label="Item name">
+
+          <div class="segmented" role="radiogroup" aria-label="Item type">
+            <label class="seg">
+              <input type="radio" name="kind" value="task" checked>
+              <span>Task</span>
+            </label>
+            <label class="seg">
+              <input type="radio" name="kind" value="break">
+              <span>Break</span>
+            </label>
+          </div>
+
+          <button class="btn-add" type="submit">Add</button>
+        </form>
+
+        <p class="capture-hint" data-region="capture-hint" role="status" aria-live="polite"></p>
+
       </div>
     </section>
 
     <section class="panel panel-grow" aria-labelledby="items-heading">
       <h2 id="items-heading" class="panel-title">Unfinished</h2>
       <div class="panel-body" data-region="items">
-        <p class="placeholder">Selectable item list</p>
+        <!-- Replaced on first render; matches the empty state so there is no flash. -->
+        <p class="placeholder">Nothing yet — add your first item above.</p>
       </div>
     </section>
   </div>
