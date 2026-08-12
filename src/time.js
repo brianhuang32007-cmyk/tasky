@@ -47,6 +47,14 @@ export function formatHuman(ms) {
 // wrap on their own and no hour hand is needed. Fractional by design — the
 // hands sweep rather than step.
 
+/** Minutes from midnight as a wall-clock label: 570 -> "9:30 AM". */
+export function formatTimeOfDay(minutes) {
+  const h24 = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${h24 < 12 ? 'AM' : 'PM'}`;
+}
+
 export const secondHandAngle = (ms) => ((ms % MINUTE) / MINUTE) * 360;
 
 export const minuteHandAngle = (ms) => ((ms % HOUR) / HOUR) * 360;

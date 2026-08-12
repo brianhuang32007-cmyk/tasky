@@ -88,6 +88,19 @@ happened. Deleting a log entry deletes its segments too.
 Day totals sum stored milliseconds per `kind` and are never parsed back out of
 formatted strings.
 
+### Calendar
+
+`placements` maps a **log entry id to a start minute of the day**, and that is
+the whole calendar model. It is deliberately separate from `segments`: dragging
+a block is the user saying *when* something happened, and must never edit *how
+long* it took. Nothing in the drag path touches a segment.
+
+The day view runs 6am to midnight at **one pixel per minute**, which is why
+every offset in the code is a plain minute count and needs no scale conversion.
+Gridlines sit every 30 minutes; drops snap to 15. Block height is the duration
+in minutes, floored at `MIN_BLOCK_PX` so a 40-second item is still grabbable —
+the one place height stops being proportional.
+
 The analog clock shows position within the current 60-minute cycle: the second
 hand from `ms % 60000`, the minute hand from `ms % 3600000`. Both wrap on their
 own, which is why no hour hand is needed. The digital readout is the authority

@@ -208,7 +208,51 @@
   <section class="panel" aria-labelledby="summary-heading">
     <h2 id="summary-heading" class="panel-title">Calendar &amp; daily summary</h2>
     <div class="panel-body" data-region="summary">
-      <p class="placeholder">Generated calendar view and day summary</p>
+
+      <div class="calendar-intro" data-region="calendar-intro">
+        <p class="placeholder">Lay today's finished items onto a day view to see where the time actually went.</p>
+        <button class="btn btn-primary" type="button" data-action="generate">
+          Generate calendar &amp; summary
+        </button>
+      </div>
+
+      <div class="calendar" data-region="calendar" hidden>
+
+        <div class="unscheduled">
+          <h3 class="calendar-subtitle">Unscheduled</h3>
+          <div class="unscheduled-list" data-region="unscheduled"></div>
+        </div>
+
+        <!-- Scrolls on its own; the grid inside is one pixel per minute. -->
+        <div class="timeline">
+          <div class="timeline-grid" data-region="timeline-grid"></div>
+        </div>
+
+      </div>
+
+      <div class="daysummary" data-region="daysummary" hidden>
+        <p class="stat">
+          <span class="stat-label">Total Task Time</span>
+          <span class="stat-value" data-region="stat-task-time">0 sec</span>
+        </p>
+        <p class="stat">
+          <span class="stat-label">Total Break Time</span>
+          <span class="stat-value" data-region="stat-break-time">0 sec</span>
+        </p>
+        <p class="stat">
+          <span class="stat-label">Tasks completed</span>
+          <span class="stat-value" data-region="stat-task-count">0</span>
+        </p>
+        <p class="stat">
+          <span class="stat-label">Breaks taken</span>
+          <span class="stat-value" data-region="stat-break-count">0</span>
+        </p>
+        <p class="stat stat-strong">
+          <span class="stat-label">Total tracked</span>
+          <span class="stat-value" data-region="stat-total">0 sec</span>
+        </p>
+      </div>
+
     </div>
   </section>
 

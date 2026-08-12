@@ -14,6 +14,13 @@ export function emptyState() {
     log: [],        // { id, itemId, name, kind, finishedAt }
     selectedId: null,
     runningSince: null,
+
+    // Calendar placement only: log entry id -> start minute of the day.
+    // Deliberately separate from segments. Arranging a block on the calendar
+    // is the user describing when something happened, and must never edit the
+    // recorded duration.
+    placements: {},
+    calendarShown: false,
   };
 }
 

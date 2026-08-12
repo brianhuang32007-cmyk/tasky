@@ -16,6 +16,7 @@
   /* Breaks take the yellow half of the palette, tasks the orange. */
   --yellow-soft: #fbeec4;
   --yellow-ink: #8a6410;
+  --yellow-border: #e6c874;
 
   --alert: #b8501f;
 
@@ -39,6 +40,10 @@
 }
 
 * { box-sizing: border-box; }
+
+/* An author display rule beats the UA stylesheet's [hidden] { display: none },
+   so anything laid out with flex or grid would stay visible while hidden. */
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -576,6 +581,219 @@ body {
   color: var(--accent-strong);
 }
 
+/* --- Calendar day view ---------------------------------------------------- */
+
+.calendar-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.calendar-intro .placeholder {
+  width: 100%;
+  margin: 0;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.calendar-subtitle {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.unscheduled-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 9px;
+  background: var(--surface);
+  cursor: grab;
+}
+
+.chip:active { cursor: grabbing; }
+.chip-task { border-left-color: var(--accent); }
+.chip-break { border-left-color: var(--yellow-border); }
+
+.chip-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-duration {
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* The scroll container; the grid inside is a fixed 1px-per-minute canvas. */
+.timeline {
+  height: 380px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.timeline-grid {
+  position: relative;
+  height: 1080px; /* 6:00 to 24:00 at 1px per minute */
+  margin: 0 8px 0 62px;
+}
+
+.timeline-grid.is-dropping { background: var(--accent-soft); }
+
+.slot-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--border);
+}
+
+.slot-hour { border-top-style: solid; }
+
+.slot-label {
+  position: absolute;
+  left: -60px;
+  width: 54px;
+  margin-top: -7px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--muted);
+}
+
+.timeline-blocks {
+  position: absolute;
+  inset: 0;
+}
+
+.cal-block {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  padding: 3px 22px 3px 8px;
+  border: 1px solid var(--accent);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  cursor: grab;
+}
+
+.cal-block:active { cursor: grabbing; }
+
+.cal-break {
+  border-color: var(--yellow-border);
+  background: var(--yellow-soft);
+}
+
+/* Too short for two lines — keep the name legible and drop the meta line. */
+.cal-block.is-short {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal-block.is-short .cal-meta { display: none; }
+
+.cal-name {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-meta {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cal-remove {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cal-remove:hover { color: var(--alert); }
+
+/* --- Day summary ---------------------------------------------------------- */
+
+.daysummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.stat {
+  display: flex;
+  flex: 1 1 150px;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.stat-strong { background: var(--accent-soft); }
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-size: 15px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-strong);
+}
+
 /* --- Unfinished list ----------------------------------------------------- */
 
 /* Fixed height, so adding items scrolls the list instead of growing the panel
@@ -724,4 +942,13 @@ body {
   /* Stacked, the timer sits below the list, so a shorter list keeps it in
      reach without scrolling past a long backlog. */
   [data-region="items"] { height: 232px; }
+
+  /* No room for a side-by-side tray; it sits above the timeline instead. */
+  .calendar { grid-template-columns: minmax(0, 1fr); }
+  .unscheduled-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: 132px;
+  }
+  .chip { flex: 1 1 160px; }
 }

@@ -10,9 +10,18 @@ import { emptyState } from './storage.js';
 import {
   formatClock,
   formatHuman,
+  formatTimeOfDay,
   secondHandAngle,
   minuteHandAngle,
 } from './time.js';
+
+// The day view runs 6am to midnight at one pixel per minute, which keeps every
+// height and offset calculation a plain minute count.
+const DAY_START = 6 * 60;
+const DAY_END = 24 * 60;
+const SLOT = 30; // gridline spacing, and the labelled drop zones
+const SNAP = 15; // finer than the gridlines so blocks can sit on quarter hours
+const MIN_BLOCK_PX = 22; // a 3-minute block still has to be grabbable
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -35,6 +44,11 @@ const manualForm = document.querySelector('[data-form="manual"]');
 const manualHint = document.querySelector('[data-region="manual-hint"]');
 const totalTaskRegion = document.querySelector('[data-region="total-task"]');
 const totalBreakRegion = document.querySelector('[data-region="total-break"]');
+const calendarIntro = document.querySelector('[data-region="calendar-intro"]');
+const calendarRegion = document.querySelector('[data-region="calendar"]');
+const unscheduledRegion = document.querySelector('[data-region="unscheduled"]');
+const timelineGrid = document.querySelector('[data-region="timeline-grid"]');
+const daySummaryRegion = document.querySelector('[data-region="daysummary"]');
 
 // randomUUID needs a secure context. file:// qualifies in Chrome, but the
 // standalone preview bundle should not break anywhere it does not.
@@ -159,6 +173,21 @@ function deleteLogEntry(logId) {
   state.log = state.log.filter((e) => e.id !== logId);
   // Drop its segments too, or the time would linger with nothing pointing at it.
   state.segments = state.segments.filter((seg) => seg.itemId !== entry.itemId);
+  delete state.placements[logId];
+}
+
+/** Placement only — the entry's segments, and so its duration, are untouched. */
+function placeEntry(logId, startMinute) {
+  const entry = state.log.find((e) => e.id === logId);
+  if (!entry) return;
+
+  const minutes = Math.round(elapsedMs(entry.itemId) / 60_000);
+  const latest = Math.max(DAY_START, DAY_END - minutes);
+  state.placements[logId] = Math.min(Math.max(startMinute, DAY_START), latest);
+}
+
+function unplaceEntry(logId) {
+  delete state.placements[logId];
 }
 
 /** Summed from stored millisecond values, never parsed back from the display. */
@@ -287,6 +316,159 @@ function renderLog() {
   totalBreakRegion.textContent = formatHuman(totalFor('break'));
 }
 
+// --- calendar -------------------------------------------------------------
+
+const entryMinutes = (entry) => Math.round(elapsedMs(entry.itemId) / 60_000);
+
+// Held here rather than in dataTransfer, whose payload is unreadable during
+// dragover — and we need the grab offset to keep a block under the cursor.
+let dragging = null;
+
+function startDrag(logId, grabOffsetMin) {
+  return (event) => {
+    dragging = { logId, grabOffsetMin };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', logId); // Firefox needs a payload
+  };
+}
+
+function unscheduledChip(entry) {
+  const chip = document.createElement('div');
+  chip.className = `chip chip-${entry.kind}`;
+  chip.draggable = true;
+  chip.dataset.logId = entry.id;
+
+  const name = document.createElement('span');
+  name.className = 'chip-name';
+  name.textContent = entry.name;
+  name.title = entry.name;
+
+  const duration = document.createElement('span');
+  duration.className = 'chip-duration';
+  duration.textContent = formatHuman(elapsedMs(entry.itemId));
+
+  chip.append(name, badge(entry.kind), duration);
+  chip.addEventListener('dragstart', startDrag(entry.id, 0));
+  return chip;
+}
+
+function renderUnscheduled() {
+  const pending = state.log.filter((entry) => !(entry.id in state.placements));
+
+  if (pending.length === 0) {
+    const done = document.createElement('p');
+    done.className = 'placeholder';
+    done.textContent = state.log.length === 0
+      ? 'Finish something first.'
+      : 'Everything is placed.';
+    unscheduledRegion.replaceChildren(done);
+    return;
+  }
+
+  unscheduledRegion.replaceChildren(...pending.map(unscheduledChip));
+}
+
+/** Gridlines and hour labels never change, so they are built once. */
+function buildTimelineLines() {
+  const lines = document.createElement('div');
+  lines.className = 'timeline-lines';
+
+  for (let minute = DAY_START; minute <= DAY_END; minute += SLOT) {
+    const top = minute - DAY_START;
+
+    const line = document.createElement('div');
+    line.className = minute % 60 === 0 ? 'slot-line slot-hour' : 'slot-line';
+    line.style.top = `${top}px`;
+    lines.append(line);
+
+    if (minute % 60 === 0) {
+      const label = document.createElement('span');
+      label.className = 'slot-label';
+      label.style.top = `${top}px`;
+      label.textContent = formatTimeOfDay(minute);
+      lines.append(label);
+    }
+  }
+  return lines;
+}
+
+function calendarBlock(entry, startMinute) {
+  const minutes = entryMinutes(entry);
+  const height = Math.max(minutes, MIN_BLOCK_PX);
+
+  const block = document.createElement('div');
+  block.className = `cal-block cal-${entry.kind}${height < 44 ? ' is-short' : ''}`;
+  block.draggable = true;
+  block.dataset.logId = entry.id;
+  block.style.top = `${startMinute - DAY_START}px`;
+  block.style.height = `${height}px`;
+  block.title = `${entry.name} — ${formatHuman(elapsedMs(entry.itemId))}, from ${formatTimeOfDay(startMinute)}`;
+
+  const name = document.createElement('span');
+  name.className = 'cal-name';
+  name.textContent = entry.name;
+
+  const meta = document.createElement('span');
+  meta.className = 'cal-meta';
+  meta.textContent = `${formatHuman(elapsedMs(entry.itemId))} · ${entry.kind === 'break' ? 'Break' : 'Task'}`;
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'cal-remove';
+  remove.dataset.unplace = entry.id;
+  remove.setAttribute('aria-label', `Remove ${entry.name} from the calendar`);
+  remove.textContent = '×';
+
+  block.append(name, meta, remove);
+
+  // Grabbing mid-block should not teleport its top edge to the cursor. Clamped
+  // to the block: an offset from outside it would throw the drop far off.
+  block.addEventListener('dragstart', (event) => {
+    const grab = Math.min(Math.max(event.offsetY, 0), height);
+    startDrag(entry.id, grab)(event);
+  });
+
+  return block;
+}
+
+function renderTimeline() {
+  const blocks = document.createElement('div');
+  blocks.className = 'timeline-blocks';
+
+  for (const entry of state.log) {
+    const start = state.placements[entry.id];
+    if (start !== undefined) blocks.append(calendarBlock(entry, start));
+  }
+
+  timelineGrid.replaceChildren(buildTimelineLines(), blocks);
+}
+
+function renderDaySummary() {
+  const taskMs = totalFor('task');
+  const breakMs = totalFor('break');
+  const set = (region, value) => {
+    document.querySelector(`[data-region="${region}"]`).textContent = value;
+  };
+
+  set('stat-task-time', formatHuman(taskMs));
+  set('stat-break-time', formatHuman(breakMs));
+  set('stat-task-count', String(state.log.filter((e) => e.kind === 'task').length));
+  set('stat-break-count', String(state.log.filter((e) => e.kind === 'break').length));
+  set('stat-total', formatHuman(taskMs + breakMs));
+}
+
+function renderCalendar() {
+  calendarIntro.hidden = state.calendarShown;
+  calendarRegion.hidden = !state.calendarShown;
+  daySummaryRegion.hidden = !state.calendarShown;
+
+  if (!state.calendarShown) return;
+
+  renderUnscheduled();
+  renderTimeline();
+  renderDaySummary();
+}
+
 function controlButton(label, action, variant) {
   const button = document.createElement('button');
   button.type = 'button';
@@ -361,6 +543,7 @@ function render() {
   renderTimerItem();
   renderControls();
   renderLog();
+  renderCalendar();
   paintTimer();
   syncLoop();
 }
@@ -505,6 +688,48 @@ controlsRegion.addEventListener('click', (event) => {
 
 finishButton.addEventListener('click', () => {
   finishItem();
+  render();
+});
+
+document.querySelector('[data-action="generate"]').addEventListener('click', () => {
+  state.calendarShown = true;
+  render();
+});
+
+timelineGrid.addEventListener('dragover', (event) => {
+  event.preventDefault(); // without this the drop never fires
+  event.dataTransfer.dropEffect = 'move';
+  timelineGrid.classList.add('is-dropping');
+});
+
+timelineGrid.addEventListener('dragleave', (event) => {
+  if (!timelineGrid.contains(event.relatedTarget)) {
+    timelineGrid.classList.remove('is-dropping');
+  }
+});
+
+timelineGrid.addEventListener('drop', (event) => {
+  event.preventDefault();
+  timelineGrid.classList.remove('is-dropping');
+
+  const logId = dragging?.logId ?? event.dataTransfer.getData('text/plain');
+  if (!logId) return;
+
+  // One pixel per minute, so the offset within the grid is already a minute
+  // count. Subtract where the block was grabbed, then snap.
+  const offset = event.clientY - timelineGrid.getBoundingClientRect().top;
+  const raw = DAY_START + offset - (dragging?.grabOffsetMin ?? 0);
+
+  placeEntry(logId, Math.round(raw / SNAP) * SNAP);
+  dragging = null;
+  render();
+});
+
+timelineGrid.addEventListener('click', (event) => {
+  const logId = event.target.closest('[data-unplace]')?.dataset.unplace;
+  if (!logId) return;
+
+  unplaceEntry(logId);
   render();
 });
 
