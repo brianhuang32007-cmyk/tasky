@@ -25,8 +25,12 @@
 
   --radius: 12px;
   --gap: 16px;
-  /* The work zone's height is derived from this — keep them in step. */
   --topbar-h: 92px;
+
+  /* The unfinished list's visible height. Fixed on purpose: the panel must not
+     grow as items are added, so the list scrolls inside this instead. Chosen to
+     land the two work-zone columns at roughly the same height. */
+  --list-h: 280px;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -89,10 +93,13 @@ body {
 
 /* --- Work zone: one screen, no scrolling ------------------------------- */
 
+/* Columns size to their content rather than stretching to the viewport, which
+   is what used to leave a tall empty gap under the timer controls. The list's
+   own fixed height is what keeps the zone from growing. */
 .work {
-  height: calc(100vh - var(--topbar-h));
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: start;
   gap: var(--gap);
   padding: var(--gap);
 }
@@ -127,9 +134,6 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-
-/* Takes the leftover height in its column. */
-.panel-grow { flex: 1; }
 
 .panel-timer { background: var(--accent-soft); }
 
@@ -264,12 +268,21 @@ body {
   gap: 9px;
   max-width: 100%;
   margin: 0;
-  min-height: 24px;
+  /* Reserved so the timer below does not shift between the empty state and a
+     selected item. */
+  min-height: 30px;
 }
 
+/* Second in the hierarchy: clearly larger than body text, clearly smaller than
+   the digital readout, which stays the strongest element. */
 .timer-name {
+  /* Without this a flex item's min-width is auto, so a long name refuses to
+     shrink, the ellipsis never engages, and the panel is forced wide. */
+  min-width: 0;
   overflow: hidden;
-  font-weight: 600;
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -417,6 +430,14 @@ body {
 
 /* --- Unfinished list ----------------------------------------------------- */
 
+/* Fixed height, so adding items scrolls the list instead of growing the panel
+   or the page. Must come after .panel-body: flex:1 there sets flex-basis:0,
+   which beats height in a flex column, so flex:none has to override it. */
+[data-region="items"] {
+  flex: none;
+  height: var(--list-h);
+}
+
 .items {
   display: flex;
   flex-direction: column;
@@ -546,11 +567,13 @@ body {
 /* Pinning the timer, when it is built, means making the timer column sticky
    within the grid — which is why it can only ever be a side, not a bar. */
 
-/* Narrow windows have no side to pin to; the columns stack and the work zone
-   is allowed to exceed one screen. */
+/* Narrow windows have no side to pin to, so the columns stack. */
 @media (max-width: 760px) {
-  .work {
-    height: auto;
-    grid-template-columns: 1fr;
-  }
+  /* minmax(0, 1fr), not 1fr: a bare 1fr has an auto minimum, which lets long
+     content force the column wider than the screen. */
+  .work { grid-template-columns: minmax(0, 1fr); }
+
+  /* Stacked, the timer sits below the list, so a shorter list keeps it in
+     reach without scrolling past a long backlog. */
+  [data-region="items"] { height: 232px; }
 }
