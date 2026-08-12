@@ -262,17 +262,81 @@ body {
 .item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 2px;
+  padding-right: 6px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
+  transition: border-color 0.12s, background-color 0.12s;
 }
 
+.item:hover { border-color: var(--accent); }
+
+.item.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Fills the row so the whole width is a comfortable target. Kept a sibling of
+   the delete button rather than its parent, so the two can never overlap. */
+.item-select {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 4px 10px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-select:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -2px;
+}
+
+/* Rows stay one line tall so a long name cannot turn the list into cards. */
 .item-name {
   flex: 1;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.item-delete {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.item-delete svg {
+  width: 15px;
+  height: 15px;
+}
+
+.item-delete:hover {
+  background: var(--surface);
+  color: var(--alert);
+}
+
+.item-delete:focus-visible {
+  outline: 2px solid var(--alert);
+  outline-offset: -2px;
 }
 
 .badge {
