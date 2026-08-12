@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasky</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1 class="wordmark">Tasky</h1>
+  <p class="tagline">What you worked on, and where the time went.</p>
+</header>
+
+<!-- Work zone: fills the screen, never scrolls. Everything needed to capture
+     an item and run the timer is here. -->
+<main class="work">
+
+  <div class="col">
+    <section class="panel" aria-labelledby="capture-heading">
+      <h2 id="capture-heading" class="panel-title">Add an item</h2>
+      <div class="panel-body" data-region="capture">
+        <p class="placeholder">Task input</p>
+      </div>
+    </section>
+
+    <section class="panel panel-grow" aria-labelledby="items-heading">
+      <h2 id="items-heading" class="panel-title">Unfinished</h2>
+      <div class="panel-body" data-region="items">
+        <p class="placeholder">Selectable item list</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel panel-grow panel-timer" aria-labelledby="timer-heading">
+      <h2 id="timer-heading" class="panel-title">Timer</h2>
+      <div class="panel-body" data-region="timer">
+        <p class="placeholder">Central timer for the selected item</p>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<!-- Review zone: below the fold. Scrolling to look back is fine; scrolling to
+     work is not. -->
+<div class="review">
+
+  <section class="panel" aria-labelledby="log-heading">
+    <h2 id="log-heading" class="panel-title">Completed log</h2>
+    <div class="panel-body" data-region="log">
+      <p class="placeholder">Finished items — name, duration, type, status</p>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="summary-heading">
+    <h2 id="summary-heading" class="panel-title">Calendar &amp; daily summary</h2>
+    <div class="panel-body" data-region="summary">
+      <p class="placeholder">Generated calendar view and day summary</p>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="ai-heading">
+    <h2 id="ai-heading" class="panel-title">AI analysis</h2>
+    <div class="panel-body" data-region="ai">
+      <p class="placeholder">Analysis, advice, and suggested improvements</p>
+    </div>
+  </section>
+
+</div>
+
+<footer class="statusbar">
+  <span data-region="status">Loading&hellip;</span>
+</footer>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
