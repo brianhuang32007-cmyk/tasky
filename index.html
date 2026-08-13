@@ -259,7 +259,35 @@
   <section class="panel" aria-labelledby="ai-heading">
     <h2 id="ai-heading" class="panel-title">AI analysis</h2>
     <div class="panel-body" data-region="ai">
-      <p class="placeholder">Analysis, advice, and suggested improvements</p>
+
+      <section class="goals" aria-labelledby="goals-heading">
+        <h3 id="goals-heading" class="calendar-subtitle">Goals</h3>
+
+        <form class="goal-form" data-form="goal">
+          <input
+            class="goal-input"
+            type="text"
+            name="text"
+            placeholder="e.g. Keep individual breaks under 30 minutes"
+            autocomplete="off"
+            aria-label="New goal">
+          <button class="btn-manual" type="submit">Add goal</button>
+        </form>
+
+        <p class="manual-hint" data-region="goal-hint" role="status" aria-live="polite"></p>
+
+        <div data-region="goals"></div>
+      </section>
+
+      <div class="analyze-bar">
+        <button class="btn btn-primary" type="button" data-action="analyze">Analyze</button>
+        <span class="analyze-date" data-region="analyze-date"></span>
+      </div>
+
+      <p class="analysis-status" data-region="analysis-status" role="status" aria-live="polite"></p>
+
+      <div data-region="analysis"></div>
+
     </div>
   </section>
 

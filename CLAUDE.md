@@ -136,10 +136,29 @@ needs them.
 Run it:
 
 ```bash
-python3 -m http.server 8000
+python3 tools/serve.py
 ```
 
-Then open <http://localhost:8000>. There is no other build or start command.
+Then open <http://localhost:8000>. There is no build step. The server is stdlib
+only and sends `Cache-Control: no-store`, because `SimpleHTTPRequestHandler`
+otherwise lets browsers hold on to edited modules across a reload.
+
+### The one exception to "no dependencies"
+
+AI analysis is the only feature that cannot be static: an API key must never
+ship in client-side code. `tools/serve.py` therefore serves the files **and**
+exposes `POST /api/analyze`, which is the only place the key is read:
+
+```bash
+pip3 install anthropic          # server-side only; the web app stays dependency-free
+export ANTHROPIC_API_KEY=sk-ant-...
+python3 tools/serve.py
+```
+
+Both are optional. Without them the whole app still runs and only the Analyze
+button reports that analysis is unavailable. The key is read from the
+environment by the SDK, is never written to a file, and never reaches the
+browser.
 
 ### Reviewing progress
 
@@ -194,7 +213,28 @@ project grouping.
 Deferred but expected: **accounts.** Storage stays behind one module so this
 does not become a rewrite.
 
-## Open questions
+### Analysis
+
+`goals` is a plain list of free text, stored apart from activity. A goal is
+context for the analysis and nothing else — it never changes a task, a timer,
+or a calendar block, and deleting one leaves recorded activity untouched.
+
+The prompt lives in `tools/serve.py`, and its rules matter as much as the code:
+the model is given the app's already-computed durations and totals and told not
+to recompute them, is told that missing calendar placement means the time of
+day is **unknown** rather than guessable, and is told to say
+"Not enough recorded information today to evaluate this goal" rather than
+stretch. Manual log entries are passed through flagged, so their assumed timing
+is never read as observed. Analysis is recommendation-heavy when goals exist and
+descriptive when they don't; it never invents a goal.
+
+Output comes back through a JSON schema (`output_config.format`) as headed
+sections of short points, so it renders with `textContent` — model output is
+never parsed as markup.
+
+A stored analysis carries a **fingerprint** of the goals, log, and placements it
+was generated from. When the current data no longer matches, the UI says so
+instead of letting a stale reading pass as current.
 
 Decide these with Brian; do not settle them unilaterally.
 

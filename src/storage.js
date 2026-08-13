@@ -21,6 +21,14 @@ export function emptyState() {
     // recorded duration.
     placements: {},
     calendarShown: false,
+
+    // Free-text instructions the user gives the analysis. Stored apart from
+    // activity: a goal never changes a task, a timer, or a calendar block.
+    goals: [],      // { id, text }
+
+    // The last analysis, with a fingerprint of the data it was generated from,
+    // so a stale one is never presented as current.
+    analysis: null, // { sections, generatedAt, fingerprint, goalCount }
   };
 }
 

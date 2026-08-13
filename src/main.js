@@ -50,6 +50,13 @@ const unscheduledRegion = document.querySelector('[data-region="unscheduled"]');
 const timelineGrid = document.querySelector('[data-region="timeline-grid"]');
 const timelineScroller = document.querySelector('.timeline');
 const daySummaryRegion = document.querySelector('[data-region="daysummary"]');
+const goalForm = document.querySelector('[data-form="goal"]');
+const goalHint = document.querySelector('[data-region="goal-hint"]');
+const goalsRegion = document.querySelector('[data-region="goals"]');
+const analyzeButton = document.querySelector('[data-action="analyze"]');
+const analyzeDateRegion = document.querySelector('[data-region="analyze-date"]');
+const analysisStatusRegion = document.querySelector('[data-region="analysis-status"]');
+const analysisRegion = document.querySelector('[data-region="analysis"]');
 
 // randomUUID needs a secure context. file:// qualifies in Chrome, but the
 // standalone preview bundle should not break anywhere it does not.
@@ -317,6 +324,284 @@ function renderLog() {
   totalBreakRegion.textContent = formatHuman(totalFor('break'));
 }
 
+// --- goals and analysis ---------------------------------------------------
+
+// Transient, so it is not part of the fingerprint below.
+let analysisPending = false;
+let analysisError = null;
+
+function addGoal(text) {
+  state.goals.push({ id: newId(), text });
+}
+
+function deleteGoal(id) {
+  state.goals = state.goals.filter((goal) => goal.id !== id);
+}
+
+/**
+ * Everything an analysis depends on. Comparing this against the fingerprint
+ * stored with an analysis is how a stale one is caught rather than presented
+ * as though it still describes the current day.
+ */
+function analysisFingerprint() {
+  return JSON.stringify({
+    goals: state.goals.map((g) => g.text),
+    log: state.log.map((e) => [e.id, e.name, e.kind, elapsedMs(e.itemId)]),
+    placements: state.placements,
+  });
+}
+
+/** Ordered stretches of real timing, used for the switching summary. */
+function switchingNotes() {
+  const logged = new Set(state.log.map((entry) => entry.itemId));
+  const nameOf = new Map(state.log.map((entry) => [entry.itemId, entry.name]));
+
+  const timed = state.segments
+    .filter((seg) => logged.has(seg.itemId) && !seg.manual)
+    .sort((a, b) => a.startedAt - b.startedAt);
+
+  if (timed.length === 0) return [];
+
+  let switches = 0;
+  for (let i = 1; i < timed.length; i += 1) {
+    if (timed[i].itemId !== timed[i - 1].itemId) switches += 1;
+  }
+
+  const stretches = new Map();
+  for (const seg of timed) {
+    stretches.set(seg.itemId, (stretches.get(seg.itemId) ?? 0) + 1);
+  }
+
+  const fragmented = [...stretches.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([itemId, count]) => `${nameOf.get(itemId)} (${count} stretches)`);
+
+  const longest = timed.reduce((a, b) =>
+    b.endedAt - b.startedAt > a.endedAt - a.startedAt ? b : a,
+  );
+
+  const notes = [
+    `- Timed work was recorded in ${timed.length} stretch${timed.length === 1 ? '' : 'es'} across ${stretches.size} item${stretches.size === 1 ? '' : 's'}.`,
+    `- Times the user moved from one item to another mid-day: ${switches}`,
+    `- Longest unbroken stretch: ${formatHuman(longest.endedAt - longest.startedAt)} on ${nameOf.get(longest.itemId)}`,
+  ];
+
+  notes.push(
+    fragmented.length > 0
+      ? `- Items worked in more than one stretch: ${fragmented.join(', ')}`
+      : '- Every timed item was completed in a single unbroken stretch.',
+  );
+
+  return notes;
+}
+
+/** Only describes the calendar if the user actually arranged one. */
+function calendarNotes() {
+  const placed = state.log
+    .filter((entry) => entry.id in state.placements)
+    .map((entry) => ({
+      entry,
+      start: state.placements[entry.id],
+      minutes: entryMinutes(entry),
+    }))
+    .sort((a, b) => a.start - b.start);
+
+  if (!state.calendarShown || placed.length === 0) return [];
+
+  const notes = [
+    `- The user placed ${placed.length} of ${state.log.length} finished items on a day view.`,
+  ];
+
+  for (const { entry, start, minutes } of placed) {
+    notes.push(
+      `- ${formatTimeOfDay(start)} to ${formatTimeOfDay(start + minutes)} — ${entry.name} (${entry.kind})`,
+    );
+  }
+
+  for (let i = 1; i < placed.length; i += 1) {
+    const previousEnd = placed[i - 1].start + placed[i - 1].minutes;
+    const gap = placed[i].start - previousEnd;
+    if (gap > 0) {
+      notes.push(
+        `- Unaccounted gap of ${formatHuman(gap * 60_000)} between ${formatTimeOfDay(previousEnd)} and ${formatTimeOfDay(placed[i].start)}`,
+      );
+    }
+  }
+
+  const unplaced = state.log.filter((entry) => !(entry.id in state.placements));
+  if (unplaced.length > 0) {
+    notes.push(
+      `- Finished but not placed, so their time of day is unknown: ${unplaced.map((e) => e.name).join(', ')}`,
+    );
+  }
+
+  return notes;
+}
+
+/** Only what the app actually knows. Nothing here is inferred. */
+function analysisPayload() {
+  const taskMs = totalFor('task');
+  const breakMs = totalFor('break');
+
+  return {
+    date: new Date().toLocaleDateString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+    goals: state.goals.map((goal) => goal.text),
+    completed: state.log.map((entry) => {
+      const start = state.placements[entry.id];
+      return {
+        name: entry.name,
+        kind: entry.kind,
+        duration: formatHuman(elapsedMs(entry.itemId)),
+        scheduled:
+          start === undefined
+            ? null
+            : `${formatTimeOfDay(start)} to ${formatTimeOfDay(start + entryMinutes(entry))}`,
+        manual: state.segments.some((s) => s.itemId === entry.itemId && s.manual),
+      };
+    }),
+    totals: {
+      task: formatHuman(taskMs),
+      break: formatHuman(breakMs),
+      total: formatHuman(taskMs + breakMs),
+      taskCount: state.log.filter((e) => e.kind === 'task').length,
+      breakCount: state.log.filter((e) => e.kind === 'break').length,
+    },
+    switching: { notes: switchingNotes() },
+    calendar: { notes: calendarNotes() },
+  };
+}
+
+async function runAnalysis() {
+  analysisPending = true;
+  analysisError = null;
+  render();
+
+  try {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(analysisPayload()),
+    });
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || `Request failed (${response.status}).`);
+
+    state.analysis = {
+      sections: body.sections ?? [],
+      generatedAt: Date.now(),
+      goalCount: state.goals.length,
+      fingerprint: analysisFingerprint(),
+    };
+  } catch (error) {
+    // A file:// page has no server to call, which is the likeliest cause here.
+    analysisError =
+      location.protocol === 'file:'
+        ? 'Analysis needs the local server. Run python3 tools/serve.py and open http://localhost:8000.'
+        : error.message;
+  } finally {
+    analysisPending = false;
+    render();
+  }
+}
+
+function goalRow(goal) {
+  const li = document.createElement('li');
+  li.className = 'goal';
+
+  const text = document.createElement('span');
+  text.className = 'goal-text';
+  text.textContent = goal.text;
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'item-delete';
+  remove.dataset.goalId = goal.id;
+  remove.setAttribute('aria-label', `Delete goal: ${goal.text}`);
+  remove.append(deleteIcon());
+
+  li.append(text, remove);
+  return li;
+}
+
+function renderGoals() {
+  if (state.goals.length === 0) {
+    goalsRegion.replaceChildren(
+      placeholder('No goals yet — analysis will simply describe your day.'),
+    );
+    return;
+  }
+
+  const list = document.createElement('ul');
+  list.className = 'goal-list';
+  list.append(...state.goals.map(goalRow));
+  goalsRegion.replaceChildren(list);
+}
+
+function analysisSection(section) {
+  const block = document.createElement('section');
+  block.className = 'analysis-section';
+
+  const heading = document.createElement('h4');
+  heading.className = 'analysis-heading';
+  heading.textContent = section.heading;
+
+  const points = document.createElement('ul');
+  points.className = 'analysis-points';
+  for (const point of section.points ?? []) {
+    const li = document.createElement('li');
+    li.textContent = point;
+    points.append(li);
+  }
+
+  block.append(heading, points);
+  return block;
+}
+
+function renderAnalysis() {
+  renderGoals();
+
+  analyzeButton.disabled = analysisPending;
+  analyzeButton.textContent = analysisPending ? 'Analyzing…' : 'Analyze';
+  analyzeDateRegion.textContent = new Date().toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+  });
+
+  if (analysisPending) {
+    analysisStatusRegion.textContent = 'Reading today’s data…';
+    analysisStatusRegion.className = 'analysis-status';
+  } else if (analysisError) {
+    analysisStatusRegion.textContent = analysisError;
+    analysisStatusRegion.className = 'analysis-status is-error';
+  } else if (state.analysis && state.analysis.fingerprint !== analysisFingerprint()) {
+    // Never let an old analysis pass as a description of changed data.
+    analysisStatusRegion.textContent =
+      'Your goals or activity have changed since this analysis. Run Analyze again for a current one.';
+    analysisStatusRegion.className = 'analysis-status is-stale';
+  } else {
+    analysisStatusRegion.textContent = '';
+    analysisStatusRegion.className = 'analysis-status';
+  }
+
+  if (!state.analysis) {
+    analysisRegion.replaceChildren(
+      placeholder(
+        state.log.length === 0
+          ? 'Finish something first, then press Analyze.'
+          : 'Press Analyze for a read on your day.',
+      ),
+    );
+    return;
+  }
+
+  analysisRegion.replaceChildren(...state.analysis.sections.map(analysisSection));
+}
+
 // --- calendar -------------------------------------------------------------
 
 const entryMinutes = (entry) => Math.round(elapsedMs(entry.itemId) / 60_000);
@@ -545,6 +830,7 @@ function render() {
   renderControls();
   renderLog();
   renderCalendar();
+  renderAnalysis();
   paintTimer();
   syncLoop();
 }
@@ -730,6 +1016,41 @@ timelineGrid.addEventListener('drop', (event) => {
   placeEntry(logId, Math.round(raw / SNAP) * SNAP);
   dragging = null;
   render();
+});
+
+goalForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+
+  const text = goalForm.elements.text.value.trim();
+  if (text === '') {
+    goalHint.textContent = 'Describe the goal first.';
+    goalForm.elements.text.focus();
+    return;
+  }
+
+  addGoal(text);
+  goalForm.reset();
+  goalHint.textContent = '';
+  render();
+  goalForm.elements.text.focus();
+});
+
+goalForm.addEventListener('input', () => {
+  goalHint.textContent = '';
+});
+
+goalsRegion.addEventListener('click', (event) => {
+  const goalId = event.target.closest('[data-goal-id]')?.dataset.goalId;
+  if (!goalId) return;
+
+  // Deleting a goal only changes what the next analysis is told; recorded
+  // activity is untouched.
+  deleteGoal(goalId);
+  render();
+});
+
+analyzeButton.addEventListener('click', () => {
+  runAnalysis();
 });
 
 timelineGrid.addEventListener('click', (event) => {
