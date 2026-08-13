@@ -653,6 +653,8 @@ body {
 /* The scroll container; the grid inside is a fixed 1px-per-minute canvas. */
 .timeline {
   height: 380px;
+  /* Breathing room so the first and last hour labels are not clipped. */
+  padding: 10px 0;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -661,7 +663,7 @@ body {
 
 .timeline-grid {
   position: relative;
-  height: 1080px; /* 6:00 to 24:00 at 1px per minute */
+  height: 1440px; /* full day at 1px per minute */
   margin: 0 8px 0 62px;
 }
 

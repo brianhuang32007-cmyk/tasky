@@ -95,7 +95,7 @@ the whole calendar model. It is deliberately separate from `segments`: dragging
 a block is the user saying *when* something happened, and must never edit *how
 long* it took. Nothing in the drag path touches a segment.
 
-The day view runs 6am to midnight at **one pixel per minute**, which is why
+The day view runs midnight to midnight at **one pixel per minute**, which is why
 every offset in the code is a plain minute count and needs no scale conversion.
 Gridlines sit every 30 minutes; drops snap to 15. Block height is the duration
 in minutes, floored at `MIN_BLOCK_PX` so a 40-second item is still grabbable —

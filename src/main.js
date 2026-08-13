@@ -15,9 +15,9 @@ import {
   minuteHandAngle,
 } from './time.js';
 
-// The day view runs 6am to midnight at one pixel per minute, which keeps every
-// height and offset calculation a plain minute count.
-const DAY_START = 6 * 60;
+// The day view runs midnight to midnight at one pixel per minute, which keeps
+// every height and offset calculation a plain minute count.
+const DAY_START = 0;
 const DAY_END = 24 * 60;
 const SLOT = 30; // gridline spacing, and the labelled drop zones
 const SNAP = 15; // finer than the gridlines so blocks can sit on quarter hours
@@ -48,6 +48,7 @@ const calendarIntro = document.querySelector('[data-region="calendar-intro"]');
 const calendarRegion = document.querySelector('[data-region="calendar"]');
 const unscheduledRegion = document.querySelector('[data-region="unscheduled"]');
 const timelineGrid = document.querySelector('[data-region="timeline-grid"]');
+const timelineScroller = document.querySelector('.timeline');
 const daySummaryRegion = document.querySelector('[data-region="daysummary"]');
 
 // randomUUID needs a secure context. file:// qualifies in Chrome, but the
@@ -694,6 +695,12 @@ finishButton.addEventListener('click', () => {
 document.querySelector('[data-action="generate"]').addEventListener('click', () => {
   state.calendarShown = true;
   render();
+
+  // A full midnight-to-midnight day opens on hours nobody worked. Scroll once,
+  // here rather than in render(), so it never fights the user's own scrolling.
+  const placed = Object.values(state.placements);
+  const focus = placed.length > 0 ? Math.min(...placed) : 7 * 60;
+  timelineScroller.scrollTop = Math.max(0, focus - DAY_START - 30);
 });
 
 timelineGrid.addEventListener('dragover', (event) => {
