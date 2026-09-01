@@ -269,6 +269,43 @@ left to edit here.
 progress page has to rebuild the assignments list so the row reflects the
 progress just edited.
 
+### Add to calendar
+
+The progress page offers **Add to Calendar** on the two dated kinds, which
+downloads a `.ics` the user imports into Google Calendar. Other never offers
+it: without a date there is no event to export.
+
+The button is shown whether or not the export would succeed, and the failure is
+reported on click. A control disabled for unstated reasons teaches the user
+nothing; the error names what is missing.
+
+**A time is required, and the time field is free text.** `parseTimeOfDay()`
+therefore spends most of its effort refusing input rather than interpreting it.
+It accepts a meridiem (`9am`, `7.45pm`), a clock (`09:30`, `14:00`, read as
+24-hour), or `noon` / `midnight`. A bare number is deliberately rejected —
+"period 3" would otherwise become 03:00, and a calendar entry that is silently
+wrong is worse than one that was never created.
+
+The year comes from `nextOccurrence()`, the same helper the reminders use, so a
+date already past this year exports as next year's.
+
+**Duration defaults to 30 minutes**, overridden by anything duration-shaped in
+the notes: `45 min`, `1 hour 30 min`, `1h45m`, `1.5 hrs`. Combined
+hours-and-minutes is matched before hours-alone, which would otherwise match
+first and drop the minutes. What was found is shown next to the button, tagged
+"from your notes", so a duration picked up out of prose is visible rather than
+a surprise in the calendar.
+
+Times are written as RFC 5545 **floating** local time — no `Z`, no `TZID`.
+Google reads those in the calendar's own timezone, which is what someone means
+when they write 9am. Output is CRLF throughout, escaped per §3.3.11, and folded
+at 75 **octets** per §3.1 — counted in bytes and never mid-character, so an
+accented note cannot produce a broken file.
+
+One current limitation: **time is set at creation and cannot be edited
+afterwards**, so an assignment saved without one has to be re-added to gain a
+calendar export.
+
 ### Per-page theming
 
 Assignments is **neon cyan**; Tasks stays warm orange. This is done by

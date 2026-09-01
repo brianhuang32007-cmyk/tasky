@@ -1424,6 +1424,7 @@ body {
 
 /* Each row publishes its type's colours; everything inside reads them. */
 .assignment[data-kind="assignment"],
+.progress-cal[data-kind="assignment"],
 .asg-total[data-kind="assignment"] {
   --type: var(--type-assignment);
   --type-soft: var(--type-assignment-soft);
@@ -1431,6 +1432,7 @@ body {
 }
 
 .assignment[data-kind="event"],
+.progress-cal[data-kind="event"],
 .asg-total[data-kind="event"] {
   --type: var(--type-event);
   --type-soft: var(--type-event-soft);
@@ -1438,6 +1440,7 @@ body {
 }
 
 .assignment[data-kind="other"],
+.progress-cal[data-kind="other"],
 .asg-total[data-kind="other"] {
   --type: var(--type-other);
   --type-soft: var(--type-other-soft);
@@ -2038,4 +2041,52 @@ body {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
+}
+
+
+/* --- add to calendar ----------------------------------------------------- */
+
+.progress-cal {
+  margin: -4px 0 16px;
+}
+
+.cal-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-cal {
+  flex: none;
+  padding: 6px 14px;
+  border: 1px solid var(--type, var(--accent));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--type-ink, var(--accent-strong));
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn-cal:hover { background: var(--type-soft, var(--accent-soft)); }
+
+.btn-cal:focus-visible {
+  outline: 2px solid var(--type, var(--accent));
+  outline-offset: 2px;
+}
+
+.cal-hint {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cal-msg {
+  margin: 8px 0 0;
+  color: var(--alert);
+  font-size: 12.5px;
+  line-height: 1.45;
 }

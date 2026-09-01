@@ -459,6 +459,18 @@
           <span class="assignment-when" data-region="progress-when"></span>
         </div>
 
+        <!-- Only the dated kinds. An .ics with no date and no clock time is
+             not an event, so Other never offers this. -->
+        <div class="progress-cal" data-region="cal" hidden>
+          <div class="cal-row">
+            <button class="btn-cal" type="button" data-action="add-to-calendar">
+              Add to Calendar
+            </button>
+            <span class="cal-hint" data-region="cal-hint"></span>
+          </div>
+          <p class="cal-msg" data-region="cal-msg" role="status" hidden></p>
+        </div>
+
         <label class="field-label" for="progress-note">Notes</label>
         <textarea
           id="progress-note"

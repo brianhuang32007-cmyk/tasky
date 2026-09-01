@@ -97,6 +97,9 @@ const boxCountField = document.querySelector('[data-region="box-count"]');
 const boxesSummary = document.querySelector('[data-region="boxes-summary"]');
 const boxesRegion = document.querySelector('[data-region="boxes"]');
 const completeButton = document.querySelector('[data-action="complete-assignment"]');
+const calRegion = document.querySelector('[data-region="cal"]');
+const calHint = document.querySelector('[data-region="cal-hint"]');
+const calMessage = document.querySelector('[data-region="cal-msg"]');
 const modePanels = {
   manual: document.querySelector('[data-region="mode-manual"]'),
   weighted: document.querySelector('[data-region="mode-weighted"]'),
@@ -1378,6 +1381,20 @@ document.querySelector('[data-action="back-to-assignments"]').addEventListener('
   location.hash = '#assignments';
 });
 
+document.querySelector('[data-action="add-to-calendar"]').addEventListener('click', () => {
+  if (!progressEntry) return;
+
+  const plan = calendarPlan(progressEntry);
+  if (!plan.ok) {
+    calMessage.textContent = `Error: calendar cannot be generated — ${plan.reason}`;
+    calMessage.hidden = false;
+    return;
+  }
+
+  hideCalMessage();
+  downloadIcs(progressEntry, plan);
+});
+
 completeButton.addEventListener('click', () => {
   if (!progressEntry) return;
 
@@ -1970,6 +1987,8 @@ function renderProgress() {
   progressFill.style.width = `${percent}%`;
   progressPercentRegion.textContent = `${percent}%`;
 
+  renderCalendarExport(entry);
+
   // Offered only once the work is actually finished.
   completeButton.hidden = percent < 100;
 
@@ -1988,10 +2007,247 @@ function renderProgress() {
   renderBoxes(entry);
 }
 
+/**
+ * The button is offered on the dated kinds whether or not a time is set: the
+ * error on click is how the user finds out a time is what is missing, which is
+ * more discoverable than a control that is disabled for unstated reasons.
+ */
+function renderCalendarExport(entry) {
+  const dated = entry.kind === 'assignment' || entry.kind === 'event';
+  calRegion.hidden = !dated;
+  if (!dated) return;
+
+  calRegion.dataset.kind = entry.kind;
+
+  const plan = calendarPlan(entry);
+  calHint.textContent = plan.ok
+    ? `${formatHuman(plan.minutes * 60_000)}${plan.fromNotes ? ' — from your notes' : ''}`
+    : '';
+
+  // Editing the notes can fix the reason, so a stale complaint is cleared as
+  // soon as the export would succeed.
+  if (plan.ok) hideCalMessage();
+}
+
+function hideCalMessage() {
+  calMessage.hidden = true;
+  calMessage.textContent = '';
+}
+
 /** A progress edit changes no structure elsewhere, so it saves and repaints. */
 function commitProgress() {
   persist();
   renderProgress();
+}
+
+// --- calendar export ------------------------------------------------------
+
+// A calendar event needs a length, and an assignment does not carry one. Half
+// an hour is a working default the user can override by saying so in Notes.
+const DEFAULT_EVENT_MINUTES = 30;
+const MAX_EVENT_MINUTES = 24 * 60;
+
+/**
+ * Reads a clock time out of the free-text time field.
+ *
+ * That field accepts anything — "9am", "period 3", "after lunch" — so most of
+ * the work here is refusing what cannot honestly be turned into a time rather
+ * than guessing. A bare number is deliberately rejected: "period 3" would
+ * otherwise silently become 03:00. A time has to carry a meridiem, a colon, or
+ * a word we know.
+ *
+ * Returns { hours, minutes } or null.
+ */
+function parseTimeOfDay(raw) {
+  if (!raw) return null;
+  const text = raw.trim().toLowerCase();
+
+  if (/\b(noon|midday)\b/.test(text)) return { hours: 12, minutes: 0 };
+  if (/\bmidnight\b/.test(text)) return { hours: 0, minutes: 0 };
+
+  // 9:30, 9.30pm, 14:00. A bare HH:MM is read as a 24-hour clock.
+  let m = text.match(/(\d{1,2})[:.](\d{2})\s*(am|pm)?/);
+  if (!m) {
+    // 9am, 9 pm. The meridiem is what makes a lone number readable.
+    m = text.match(/(\d{1,2})\s*(am|pm)\b/);
+    if (m) m = [m[0], m[1], '0', m[2]];
+  }
+  if (!m) return null;
+
+  let hours = Number(m[1]);
+  const minutes = Number(m[2]);
+  const meridiem = m[3];
+
+  if (minutes > 59) return null;
+
+  if (meridiem === 'am') {
+    if (hours > 12) return null;
+    if (hours === 12) hours = 0;          // 12am is midnight
+  } else if (meridiem === 'pm') {
+    if (hours > 12) return null;
+    if (hours !== 12) hours += 12;        // 12pm is noon
+  }
+
+  return hours > 23 ? null : { hours, minutes };
+}
+
+/**
+ * A duration in minutes, read out of the notes (and the description, for
+ * completeness — only Other has one, and Other has no calendar button).
+ * Returns null when nothing is said, which the caller reads as "use the
+ * default" rather than as an error.
+ */
+function parseDurationMinutes(text) {
+  if (!text) return null;
+  const t = text.toLowerCase();
+
+  // Hours and minutes together, first: "1 hour 30 min", "1h30m". Checked
+  // before the hours-only pattern, which would otherwise match and drop the
+  // minutes on the floor.
+  let m = t.match(/(\d{1,2})\s*h(?:ours?|rs?)?\s*(\d{1,2})\s*m/);
+  if (m) return clampMinutes(Number(m[1]) * 60 + Number(m[2]));
+
+  m = t.match(/(\d{1,2}(?:\.\d+)?)\s*h(?:ours?|rs?)?\b/);
+  if (m) return clampMinutes(Math.round(Number(m[1]) * 60));
+
+  m = t.match(/(\d{1,3})\s*m(?:in(?:ute)?s?)?\b/);
+  if (m) return clampMinutes(Number(m[1]));
+
+  return null;
+}
+
+const clampMinutes = (n) =>
+  Number.isFinite(n) && n >= 1 ? Math.min(Math.round(n), MAX_EVENT_MINUTES) : null;
+
+/**
+ * Everything the .ics needs, or a reason it cannot be built. The reason is
+ * specific because "add a time" and "9am, not period 3" are different fixes.
+ */
+function calendarPlan(entry) {
+  const due = nextOccurrence(entry);
+  if (!due) return { ok: false, reason: 'no date is set.' };
+
+  if (!entry.time) {
+    return { ok: false, reason: 'no time is set, and an event needs one.' };
+  }
+
+  const clock = parseTimeOfDay(entry.time);
+  if (!clock) {
+    return {
+      ok: false,
+      reason: `“${entry.time}” isn’t a time we can read. Try something like 9am or 14:30.`,
+    };
+  }
+
+  const start = new Date(
+    due.getFullYear(), due.getMonth(), due.getDate(), clock.hours, clock.minutes,
+  );
+
+  // The year comes from nextOccurrence(), so a date already past this year is
+  // exported as next year's — the same rule the reminders use.
+  const found = parseDurationMinutes(
+    `${entry.progress?.note ?? ''} ${entry.description ?? ''}`,
+  );
+
+  return {
+    ok: true,
+    start,
+    minutes: found ?? DEFAULT_EVENT_MINUTES,
+    fromNotes: found !== null,
+  };
+}
+
+const pad2 = (n) => String(n).padStart(2, '0');
+
+// Local time with no zone and no Z: a "floating" time in RFC 5545 terms.
+// Google reads it in the calendar's own timezone, which is what someone means
+// when they write 9am.
+const icsLocal = (d) =>
+  `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}` +
+  `T${pad2(d.getHours())}${pad2(d.getMinutes())}00`;
+
+const icsUtc = (d) =>
+  `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}` +
+  `T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}${pad2(d.getUTCSeconds())}Z`;
+
+/** RFC 5545 §3.3.11: backslash, semicolon, comma and newlines are special. */
+const icsEscape = (s) =>
+  s.replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+
+/**
+ * RFC 5545 §3.1: no line exceeds 75 octets; longer ones continue on the next
+ * line behind a single space. Counted in octets rather than characters, and
+ * never mid-character, so an accented note does not produce a broken file.
+ */
+function icsFold(line) {
+  const encoder = new TextEncoder();
+  if (encoder.encode(line).length <= 75) return line;
+
+  const out = [];
+  let current = '';
+  let bytes = 0;
+
+  for (const ch of line) {
+    const size = encoder.encode(ch).length;
+    // Continuation lines spend one of their 75 octets on the leading space.
+    const limit = out.length === 0 ? 75 : 74;
+    if (bytes + size > limit) {
+      out.push(current);
+      current = '';
+      bytes = 0;
+    }
+    current += ch;
+    bytes += size;
+  }
+  out.push(current);
+
+  return out.join('\r\n ');
+}
+
+function buildIcs(entry, plan) {
+  const end = new Date(plan.start.getTime() + plan.minutes * 60_000);
+  const note = entry.progress?.note?.trim();
+
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Tasky//Tasky//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${entry.id}@tasky.local`,
+    `DTSTAMP:${icsUtc(new Date())}`,
+    `DTSTART:${icsLocal(plan.start)}`,
+    `DTEND:${icsLocal(end)}`,
+    `SUMMARY:${icsEscape(entry.name)}`,
+  ];
+
+  if (note) lines.push(`DESCRIPTION:${icsEscape(note)}`);
+  lines.push('END:VEVENT', 'END:VCALENDAR');
+
+  // CRLF throughout, per the spec, and a trailing one to close the last line.
+  return `${lines.map(icsFold).join('\r\n')}\r\n`;
+}
+
+const icsFilename = (name) =>
+  `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'assignment'}.ics`;
+
+function downloadIcs(entry, plan) {
+  const blob = new Blob([buildIcs(entry, plan)], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = icsFilename(entry.name);
+  document.body.append(link);
+  link.click();
+  link.remove();
+
+  // Revoking in the same tick can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 // --- pages ----------------------------------------------------------------
