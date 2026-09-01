@@ -167,6 +167,15 @@ then rejected — February keeps 29 days, since without a year a leap day cannot
 be ruled out and refusing a real date is worse than allowing one that needs the
 right year.
 
+**Open assignments are ordered by type, then date, then name** — one list, not
+separate sections. Assignments first, then exams and events, then other; within
+a type the soonest date first; ties and undated entries fall through to
+case-insensitive alphabetical. Since a date carries no year, this orders within
+a calendar year: January always sorts ahead of December. Undated entries sit
+after dated ones in the same group, which in practice only affects Other, where
+nothing has a date and the group is purely alphabetical. The completed list
+keeps its own most-recently-done-first order.
+
 `completedAt` is the whole done/not-done state — a timestamp or `null` — and
 everything stays in **one list**. Two lists would mean keeping them in sync and
 counting across both; one list makes "how many exams are still open" a filter.

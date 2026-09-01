@@ -1432,6 +1432,36 @@ const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 const KIND_LABELS = { assignment: 'Assignment', event: 'Exam / event', other: 'Other' };
 
+// Open assignments are listed in this order — one list, grouped by type.
+const KIND_ORDER = { assignment: 0, event: 1, other: 2 };
+
+/** A day/month as a sortable number: 14 March becomes 314. */
+const dateKey = (entry) => (entry.month ? entry.month * 100 + entry.day : null);
+
+/**
+ * Type first, then soonest date, then name.
+ *
+ * There is no year in a date, so this orders within a calendar year: January
+ * always sorts ahead of December. Undated entries sit after dated ones in the
+ * same group, which in practice only affects Other, where nothing has a date
+ * and the whole group falls through to alphabetical.
+ */
+function compareAssignments(a, b) {
+  const byKind = KIND_ORDER[a.kind] - KIND_ORDER[b.kind];
+  if (byKind !== 0) return byKind;
+
+  const dateA = dateKey(a);
+  const dateB = dateKey(b);
+
+  if (dateA !== dateB) {
+    if (dateA === null) return 1;
+    if (dateB === null) return -1;
+    return dateA - dateB;
+  }
+
+  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+}
+
 /** Which kinds require a date. Other needs nothing. */
 const needsDate = (kind) => kind === 'assignment' || kind === 'event';
 
@@ -1700,7 +1730,8 @@ function renderAssignmentTotals() {
 function renderAssignments() {
   renderAssignmentForm();
 
-  const openItems = state.assignments.filter((a) => !isDone(a));
+  // filter() already copies, so sorting here never reorders stored state.
+  const openItems = state.assignments.filter((a) => !isDone(a)).sort(compareAssignments);
   const doneItems = state.assignments
     .filter(isDone)
     .sort((a, b) => b.completedAt - a.completedAt);
