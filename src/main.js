@@ -96,6 +96,7 @@ const subtasksRegion = document.querySelector('[data-region="subtasks"]');
 const boxCountField = document.querySelector('[data-region="box-count"]');
 const boxesSummary = document.querySelector('[data-region="boxes-summary"]');
 const boxesRegion = document.querySelector('[data-region="boxes"]');
+const completeButton = document.querySelector('[data-action="complete-assignment"]');
 const modePanels = {
   manual: document.querySelector('[data-region="mode-manual"]'),
   weighted: document.querySelector('[data-region="mode-weighted"]'),
@@ -1377,6 +1378,16 @@ document.querySelector('[data-action="back-to-assignments"]').addEventListener('
   location.hash = '#assignments';
 });
 
+completeButton.addEventListener('click', () => {
+  if (!progressEntry) return;
+
+  // Completing leaves nothing to edit here, so it returns to the list where
+  // the assignment now sits under Completed.
+  completeAssignment(progressEntry.id);
+  location.hash = '#assignments';
+  render();
+});
+
 for (const zone of resetZones) {
   zone.addEventListener('click', (event) => {
     const action = event.target.closest('[data-action]')?.dataset.action;
@@ -1829,6 +1840,9 @@ function renderProgress() {
   const percent = percentOf(entry);
   progressFill.style.width = `${percent}%`;
   progressPercentRegion.textContent = `${percent}%`;
+
+  // Offered only once the work is actually finished.
+  completeButton.hidden = percent < 100;
 
   for (const radio of modesRegion.querySelectorAll('input[name="mode"]')) {
     radio.checked = radio.value === p.mode;

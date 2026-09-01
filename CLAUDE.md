@@ -219,6 +219,11 @@ every keystroke without stealing the caret. Where a value must be written back
 into an input, `setValue()` writes only when it actually differs, for the same
 reason.
 
+A green **Complete assignment** button appears at the foot of the page once
+`percentOf()` reaches 100, and disappears again if progress drops back. Using
+it marks the assignment done and returns to the list, since there is nothing
+left to edit here.
+
 **Navigation calls the full `render()`, not just `renderPage()`.** Leaving the
 progress page has to rebuild the assignments list so the row reflects the
 progress just edited.
