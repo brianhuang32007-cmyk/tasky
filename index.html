@@ -322,27 +322,78 @@
 
 <div class="page" data-page="assignments" hidden>
   <div class="assignments">
-    <section class="panel" aria-labelledby="assignments-heading">
-      <h2 id="assignments-heading" class="panel-title">My assignments</h2>
+
+    <section class="panel" aria-labelledby="add-assignment-heading">
+      <h2 id="add-assignment-heading" class="panel-title">Add an assignment</h2>
       <div class="panel-body">
 
-        <div class="empty-state">
-          <svg class="empty-mark" viewBox="0 0 48 48" aria-hidden="true">
-            <rect x="10" y="7" width="28" height="34" rx="4"/>
-            <path d="M18 7h12v5H18z"/>
-            <path d="M17 21h14M17 28h14M17 35h8"/>
-          </svg>
-          <p class="empty-title">No assignments yet</p>
-          <p class="empty-note">
-            This page is next. Nothing is wired up here — the theme is in place
-            so whatever we build lands in it.
-          </p>
-        </div>
+        <form class="assignment-form" data-form="assignment">
+          <input
+            class="assignment-name"
+            type="text"
+            name="name"
+            placeholder="What is it called?"
+            autocomplete="off"
+            aria-label="Assignment name">
+
+          <div class="segmented" role="radiogroup" aria-label="Type">
+            <label class="seg">
+              <input type="radio" name="kind" value="assignment" checked>
+              <span>Assignment</span>
+            </label>
+            <label class="seg">
+              <input type="radio" name="kind" value="event">
+              <span>Exam / event</span>
+            </label>
+            <label class="seg">
+              <input type="radio" name="kind" value="other">
+              <span>Other</span>
+            </label>
+          </div>
+
+          <!-- Revealed by the type above: a deadline for an assignment, a date
+               plus an optional time for an exam or event, nothing for other. -->
+          <div class="when" data-region="when">
+            <span class="when-label" data-region="when-label">Due</span>
+            <select class="when-select" name="day" aria-label="Day" data-region="day"></select>
+            <select class="when-select" name="month" aria-label="Month" data-region="month"></select>
+            <input
+              class="when-time"
+              type="text"
+              name="time"
+              placeholder="Time (optional) — e.g. 9am"
+              autocomplete="off"
+              aria-label="Time, optional"
+              data-region="time">
+          </div>
+
+          <button class="btn-manual" type="submit">Add</button>
+        </form>
+
+        <p class="manual-hint" data-region="assignment-hint" role="status" aria-live="polite"></p>
 
       </div>
     </section>
+
+    <section class="panel" aria-labelledby="assignments-heading">
+      <h2 id="assignments-heading" class="panel-title">My assignments</h2>
+      <div class="panel-body" data-region="assignments"></div>
+    </section>
+
   </div>
 </div><!-- /page: assignments -->
+
+<template data-template="assignments-empty">
+  <div class="empty-state">
+    <svg class="empty-mark" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="10" y="7" width="28" height="34" rx="4"/>
+      <path d="M18 7h12v5H18z"/>
+      <path d="M17 21h14M17 28h14M17 35h8"/>
+    </svg>
+    <p class="empty-title">No assignments yet</p>
+    <p class="empty-note">Add one above and it will show up here.</p>
+  </div>
+</template>
 
 <footer class="statusbar">
   <span data-region="status">Loading&hellip;</span>

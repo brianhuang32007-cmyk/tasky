@@ -1270,3 +1270,148 @@ body {
   line-height: 1.55;
   color: var(--muted);
 }
+
+/* --- Add an assignment ---------------------------------------------------- */
+
+.assignment-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.assignment-name {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.assignment-name::placeholder { color: var(--muted); }
+
+.assignment-name:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.assignment-name.is-invalid { border-color: var(--alert); }
+
+/* The date fields, revealed by the chosen type. */
+.when {
+  display: flex;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.when-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.when-select {
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.when-select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.when-time {
+  /* Grows into the row rather than truncating its own placeholder. */
+  flex: 1 1 170px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.when-time::placeholder { color: var(--muted); }
+
+.when-time:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* --- Assignment list ------------------------------------------------------ */
+
+.assignment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.assignment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 6px 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.assignment-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignment-when,
+.assignment-time {
+  flex: none;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.assignment-time {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 12px;
+}
+
+/* Type badges reuse the shared .badge shape with this page's palette. */
+.badge-assignment {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.badge-event {
+  background: var(--yellow-soft);
+  color: var(--yellow-ink);
+}
+
+.badge-other {
+  background: var(--bg);
+  color: var(--muted);
+}

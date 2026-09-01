@@ -147,6 +147,29 @@ unrecognised hash falls back to Tasks. Add a page by adding a
 `<div class="page" data-page="...">`, a matching `.tab`, and an entry in
 `PAGES` / `PAGE_TITLES`.
 
+### Assignments
+
+`assignments` is its own list in state — `{ id, name, kind, day, month, time }`
+— deliberately apart from `items` and `log`. An assignment is something with a
+date, not something you run a timer against, and nothing on this page touches
+segments or the timer.
+
+The form is progressive: the type chosen decides which fields exist. An
+**assignment** needs a day and month (labelled *Due*), an **exam / event** needs
+a day and month (labelled *On*) plus an optional free-text time, and **other**
+needs neither and stores nulls for all three.
+
+Two details that carry the "must input a date" requirement. The day and month
+selects each open with a blank option, so a date has to be chosen rather than
+inherited from a pre-selected 1 January. And the day options are rebuilt from
+the chosen month, so 31 February is never offered instead of being offered and
+then rejected — February keeps 29 days, since without a year a leap day cannot
+be ruled out and refusing a real date is worse than allowing one that needs the
+right year.
+
+Time is free text on purpose ("9am", "period 3", "after lunch"), because a
+picker would demand precision the user may not have.
+
 ### Per-page theming
 
 Assignments is **neon cyan**; Tasks stays warm orange. This is done by

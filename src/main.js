@@ -65,6 +65,15 @@ const analyzeButton = document.querySelector('[data-action="analyze"]');
 const analyzeDateRegion = document.querySelector('[data-region="analyze-date"]');
 const analysisStatusRegion = document.querySelector('[data-region="analysis-status"]');
 const analysisRegion = document.querySelector('[data-region="analysis"]');
+const assignmentForm = document.querySelector('[data-form="assignment"]');
+const assignmentHint = document.querySelector('[data-region="assignment-hint"]');
+const assignmentsRegion = document.querySelector('[data-region="assignments"]');
+const whenRegion = document.querySelector('[data-region="when"]');
+const whenLabel = document.querySelector('[data-region="when-label"]');
+const daySelect = document.querySelector('[data-region="day"]');
+const monthSelect = document.querySelector('[data-region="month"]');
+const timeField = document.querySelector('[data-region="time"]');
+const assignmentsEmptyTpl = document.querySelector('[data-template="assignments-empty"]');
 const resetTrigger = document.querySelector('[data-action="reset"]');
 const resetConfirm = document.querySelector('[data-region="reset-confirm"]');
 
@@ -913,6 +922,7 @@ function render() {
   renderLog();
   renderCalendar();
   renderAnalysis();
+  renderAssignments();
   renderReset();
   paintTimer();
   syncLoop();
@@ -1137,6 +1147,61 @@ analyzeButton.addEventListener('click', () => {
   runAnalysis();
 });
 
+assignmentForm.addEventListener('change', (event) => {
+  if (event.target.name === 'kind') renderAssignmentForm();
+  if (event.target === monthSelect) buildDayOptions();
+});
+
+assignmentForm.addEventListener('input', () => {
+  assignmentHint.textContent = '';
+});
+
+assignmentForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+
+  const fields = assignmentForm.elements;
+  const name = fields.name.value.trim();
+  const kind = fields.kind.value;
+
+  if (name === '') {
+    assignmentHint.textContent = 'Give it a name first.';
+    fields.name.focus();
+    return;
+  }
+
+  // A date is required for an assignment and an exam or event, and meaningless
+  // for anything else. The blank first option is what makes "must input a
+  // date" real — a pre-selected 1 January could be submitted without a thought.
+  if (needsDate(kind) && (!daySelect.value || !monthSelect.value)) {
+    assignmentHint.textContent =
+      kind === 'assignment' ? 'Pick a deadline day and month.' : 'Pick a day and month.';
+    (daySelect.value ? monthSelect : daySelect).focus();
+    return;
+  }
+
+  addAssignment({
+    name,
+    kind,
+    day: Number(daySelect.value),
+    month: Number(monthSelect.value),
+    time: fields.time.value.trim(),
+  });
+
+  assignmentForm.reset();
+  buildDayOptions(); // the reset month may allow a different number of days
+  assignmentHint.textContent = '';
+  render();
+  fields.name.focus();
+});
+
+assignmentsRegion.addEventListener('click', (event) => {
+  const id = event.target.closest('[data-assignment-id]')?.dataset.assignmentId;
+  if (!id) return;
+
+  deleteAssignment(id);
+  render();
+});
+
 resetTrigger.addEventListener('click', () => {
   resetArmed = true;
   render();
@@ -1168,6 +1233,135 @@ timelineGrid.addEventListener('click', (event) => {
   unplaceEntry(logId);
   render();
 });
+
+// --- assignments ----------------------------------------------------------
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// February gets 29: without a year there is no way to rule out a leap day, and
+// refusing a real date is worse than allowing one that needs the right year.
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+const KIND_LABELS = { assignment: 'Assignment', event: 'Exam / event', other: 'Other' };
+
+/** Which kinds require a date. Other needs nothing. */
+const needsDate = (kind) => kind === 'assignment' || kind === 'event';
+
+function option(value, label) {
+  const el = document.createElement('option');
+  el.value = value;
+  el.textContent = label;
+  return el;
+}
+
+function buildMonthOptions() {
+  monthSelect.replaceChildren(
+    option('', 'Month'),
+    ...MONTHS.map((name, i) => option(String(i + 1), name)),
+  );
+}
+
+/**
+ * Day options track the chosen month, so 31 February is never offered rather
+ * than being offered and then rejected.
+ */
+function buildDayOptions() {
+  const month = Number(monthSelect.value);
+  const count = month ? DAYS_IN_MONTH[month - 1] : 31;
+  const chosen = daySelect.value;
+
+  daySelect.replaceChildren(
+    option('', 'Day'),
+    ...Array.from({ length: count }, (_, i) => option(String(i + 1), String(i + 1))),
+  );
+
+  // Keep the day if it still exists in the new month; otherwise clear it.
+  daySelect.value = chosen && Number(chosen) <= count ? chosen : '';
+}
+
+function addAssignment({ name, kind, day, month, time }) {
+  state.assignments.push({
+    id: newId(),
+    name,
+    kind,
+    day: needsDate(kind) ? day : null,
+    month: needsDate(kind) ? month : null,
+    time: kind === 'event' && time ? time : null,
+    createdAt: Date.now(),
+  });
+}
+
+function deleteAssignment(id) {
+  state.assignments = state.assignments.filter((a) => a.id !== id);
+}
+
+const formatWhen = (entry) =>
+  entry.month ? `${entry.day} ${MONTHS[entry.month - 1]}` : '';
+
+/** Shows only the fields the chosen kind actually requires. */
+function renderAssignmentForm() {
+  const kind = assignmentForm.elements.kind.value;
+
+  whenRegion.hidden = !needsDate(kind);
+  timeField.hidden = kind !== 'event';
+  whenLabel.textContent = kind === 'assignment' ? 'Due' : 'On';
+}
+
+function assignmentRow(entry) {
+  const li = document.createElement('li');
+  li.className = 'assignment';
+
+  const name = document.createElement('span');
+  name.className = 'assignment-title';
+  name.textContent = entry.name;
+  name.title = entry.name;
+
+  const kind = document.createElement('span');
+  kind.className = `badge badge-${entry.kind}`;
+  kind.textContent = KIND_LABELS[entry.kind];
+
+  li.append(name, kind);
+
+  const when = formatWhen(entry);
+  if (when) {
+    const date = document.createElement('span');
+    date.className = 'assignment-when';
+    date.textContent = entry.kind === 'assignment' ? `Due ${when}` : when;
+    li.append(date);
+  }
+
+  if (entry.time) {
+    const time = document.createElement('span');
+    time.className = 'assignment-time';
+    time.textContent = entry.time;
+    li.append(time);
+  }
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'item-delete';
+  remove.dataset.assignmentId = entry.id;
+  remove.setAttribute('aria-label', `Delete ${entry.name}`);
+  remove.append(deleteIcon());
+  li.append(remove);
+
+  return li;
+}
+
+function renderAssignments() {
+  renderAssignmentForm();
+
+  if (state.assignments.length === 0) {
+    assignmentsRegion.replaceChildren(assignmentsEmptyTpl.content.cloneNode(true));
+    return;
+  }
+
+  const list = document.createElement('ul');
+  list.className = 'assignment-list';
+  list.append(...state.assignments.map(assignmentRow));
+  assignmentsRegion.replaceChildren(list);
+}
 
 // --- pages ----------------------------------------------------------------
 
@@ -1206,5 +1400,7 @@ addEventListener('hashchange', renderPage);
 
 reconcileOpenRun();
 buildTicks();
+buildMonthOptions();
+buildDayOptions();
 renderPage();
 render();
