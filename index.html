@@ -321,12 +321,27 @@
 </div><!-- /page: tasks -->
 
 <div class="page" data-page="assignments" hidden>
-  <section class="panel assignments" aria-labelledby="assignments-heading">
-    <h2 id="assignments-heading" class="panel-title">My assignments</h2>
-    <div class="panel-body">
-      <p class="placeholder">Nothing here yet.</p>
-    </div>
-  </section>
+  <div class="assignments">
+    <section class="panel" aria-labelledby="assignments-heading">
+      <h2 id="assignments-heading" class="panel-title">My assignments</h2>
+      <div class="panel-body">
+
+        <div class="empty-state">
+          <svg class="empty-mark" viewBox="0 0 48 48" aria-hidden="true">
+            <rect x="10" y="7" width="28" height="34" rx="4"/>
+            <path d="M18 7h12v5H18z"/>
+            <path d="M17 21h14M17 28h14M17 35h8"/>
+          </svg>
+          <p class="empty-title">No assignments yet</p>
+          <p class="empty-note">
+            This page is next. Nothing is wired up here — the theme is in place
+            so whatever we build lands in it.
+          </p>
+        </div>
+
+      </div>
+    </section>
+  </div>
 </div><!-- /page: assignments -->
 
 <footer class="statusbar">

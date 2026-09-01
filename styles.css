@@ -1177,12 +1177,96 @@ body {
   outline-offset: 2px;
 }
 
-/* --- Assignments page ----------------------------------------------------- */
+/* --- Assignments page: neon cyan ------------------------------------------
+   Only the tokens are redefined. Every component inside the page picks the new
+   palette up on its own, which is the whole point of having tokens — and the
+   header sits outside this scope, so the tiger and the tabs stay warm. */
 
-.assignments { margin: var(--gap); }
+.page[data-page="assignments"] {
+  --bg: #eefbfd;
+  --surface: #ffffff;
+  --border: #bfe9f1;
+  --text: #0b2a32;
+  --muted: #5a7f88;
 
-.assignments .panel-body {
-  display: grid;
-  place-items: center;
+  --accent: #06b6d4;
+  --accent-strong: #0e7490;
+  --accent-soft: #d5f6fc;
+
+  /* The secondary pair, magenta against the cyan instead of the warm yellow.
+     Named for the warm theme they were introduced in; the role is "the other
+     category colour". */
+  --yellow-soft: #fbe6ff;
+  --yellow-ink: #86198f;
+  --yellow-border: #eda0f6;
+
+  --alert: #be123c;
+
+  /* What makes it read as neon rather than just teal. */
+  --glow: 0 0 18px rgba(6, 182, 212, 0.32);
+
+  /* Fill what is left below the header so the cool ground reaches the status
+     bar instead of stopping mid-page against the warm body. 34px is the status
+     bar. */
+  min-height: calc(100vh - var(--topbar-h) - 34px);
+  background: var(--bg);
+}
+
+.assignments { padding: var(--gap); }
+
+.page[data-page="assignments"] .panel {
+  box-shadow: var(--glow);
+}
+
+.page[data-page="assignments"] .panel-title {
+  color: var(--accent-strong);
+}
+
+/* Interactive elements glow on the way in, so the theme shows in use and not
+   only at rest. Applies to whatever gets built here later. */
+.page[data-page="assignments"] .btn-primary:hover:not(:disabled),
+.page[data-page="assignments"] .btn-add:hover,
+.page[data-page="assignments"] .btn-manual:hover {
+  box-shadow: var(--glow);
+}
+
+.page[data-page="assignments"] input:focus-visible,
+.page[data-page="assignments"] textarea:focus-visible {
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--glow);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   min-height: 260px;
+  justify-content: center;
+  text-align: center;
+}
+
+.empty-mark {
+  width: 56px;
+  height: 56px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 9px rgba(6, 182, 212, 0.45));
+}
+
+.empty-title {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--accent-strong);
+}
+
+.empty-note {
+  max-width: 340px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
 }

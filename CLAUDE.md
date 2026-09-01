@@ -147,6 +147,24 @@ unrecognised hash falls back to Tasks. Add a page by adding a
 `<div class="page" data-page="...">`, a matching `.tab`, and an entry in
 `PAGES` / `PAGE_TITLES`.
 
+### Per-page theming
+
+Assignments is **neon cyan**; Tasks stays warm orange. This is done by
+redefining the palette tokens scoped to `.page[data-page="assignments"]` — not
+by writing cyan rules. Every component inside the page picks the new palette up
+on its own, so anything built there later is themed with no extra work, and
+there is no second copy of any component's styles to keep in sync.
+
+The header sits **outside** any page container, so the tiger, the wordmark, and
+the tabs keep the warm palette on both pages by construction rather than by
+exception.
+
+Two notes for whoever extends it. The `--yellow-*` tokens are named for the
+warm theme that introduced them; their actual role is "the other category
+colour", and on Assignments they are magenta. And `--glow` only exists inside
+the cyan scope — it is what makes the theme read as neon rather than as plain
+teal.
+
 **Reset tracked data lives inside the Tasks page**, where the data it erases
 lives. Revisit once Assignments has its own data.
 
