@@ -1,0 +1,4 @@
+# Dev-only. Nothing here should be downloadable from the deployed site.
+tools/
+CLAUDE.md
+preview.html

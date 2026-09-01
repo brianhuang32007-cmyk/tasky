@@ -553,7 +553,18 @@ async function runAnalysis() {
     });
 
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || `Request failed (${response.status}).`);
+
+    if (!response.ok) {
+      // A static deploy has no /api/analyze at all, so the host answers 404
+      // (or 405 for a POST to a static path). That is the expected shape of a
+      // deployed Tasky, not a fault worth showing as one.
+      if (response.status === 404 || response.status === 405) {
+        throw new Error(
+          'Analysis only runs on the local server. Run python3 tools/serve.py and open localhost:8000 to use it.',
+        );
+      }
+      throw new Error(body.error || `Request failed (${response.status}).`);
+    }
 
     state.analysis = {
       sections: body.sections ?? [],

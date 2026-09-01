@@ -204,6 +204,29 @@ an input — nothing imports it, and edits belong in `index.html` and `src/`.
 Add a dependency only when it solves a problem that has actually appeared. Same
 for abstractions: write the direct version first.
 
+## Deploying
+
+Vercel serves this repo as a **static site with no build**, configured by
+`vercel.json`. `.vercelignore` keeps `tools/`, `CLAUDE.md`, and the generated
+`preview.html` off the deployment — nothing dev-only should be downloadable
+from the deployed site.
+
+**Analysis deliberately does not work when deployed.** `tools/serve.py` is a
+long-running process; Vercel runs static files and functions in `api/`, so
+`POST /api/analyze` has nothing behind it. The client treats a 404 or 405 from
+that endpoint as the expected shape of a deployed Tasky and says analysis only
+runs locally, rather than reporting a fault. Any other status still surfaces
+its real error.
+
+This is a security decision as much as a scoping one. The repo is public and a
+Vercel URL is public and unauthenticated, so a working `/api/analyze` there
+would be an open proxy to the API key — anyone who found the URL could spend
+it. Porting analysis to a Vercel function needs auth or a rate limit first.
+
+Everything else works deployed: the timer, log, calendar, goals, and
+`localStorage` persistence. Storage is per-origin, so the deployed site starts
+empty rather than showing localhost's data.
+
 ## Conventions
 
 - `src/storage.js` is the only module that touches `localStorage`. Accounts and a
