@@ -130,6 +130,26 @@ hand from `ms % 60000`, the minute hand from `ms % 3600000`. Both wrap on their
 own, which is why no hour hand is needed. The digital readout is the authority
 on total elapsed time.
 
+## Pages
+
+Two pages — **My Tasks** (everything built so far) and **My Assignments**
+(empty, being built) — as tabs in the top bar.
+
+They are **views in one document, switched on the hash**, not separate HTML
+files. That is a deliberate constraint, not a shortcut: every page load runs
+`reconcileOpenRun()`, so with separate files, clicking to another page and back
+would bank the open run and silently pause a running timer. Keeping one
+document alive means navigation costs nothing.
+
+`location.hash` is the only source of truth for the current page — no state of
+our own — so back, forward, refresh, and bookmarking work for free. An
+unrecognised hash falls back to Tasks. Add a page by adding a
+`<div class="page" data-page="...">`, a matching `.tab`, and an entry in
+`PAGES` / `PAGE_TITLES`.
+
+**Reset tracked data lives inside the Tasks page**, where the data it erases
+lives. Revisit once Assignments has its own data.
+
 ## Layout contract
 
 ```

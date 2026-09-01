@@ -59,7 +59,14 @@
     <p class="tagline">Where did all your time go?</p>
 
   </div>
+
+  <nav class="tabs" aria-label="Pages">
+    <a class="tab" href="#tasks" data-page="tasks">My Tasks</a>
+    <a class="tab" href="#assignments" data-page="assignments">My Assignments</a>
+  </nav>
 </header>
+
+<div class="page" data-page="tasks">
 
 <!-- Work zone: fills the screen, never scrolls. Everything needed to capture
      an item and run the timer is here. -->
@@ -310,6 +317,17 @@
     </div>
   </div>
 </div>
+
+</div><!-- /page: tasks -->
+
+<div class="page" data-page="assignments" hidden>
+  <section class="panel assignments" aria-labelledby="assignments-heading">
+    <h2 id="assignments-heading" class="panel-title">My assignments</h2>
+    <div class="panel-body">
+      <p class="placeholder">Nothing here yet.</p>
+    </div>
+  </section>
+</div><!-- /page: assignments -->
 
 <footer class="statusbar">
   <span data-region="status">Loading&hellip;</span>

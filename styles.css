@@ -26,7 +26,7 @@
 
   --radius: 12px;
   --gap: 16px;
-  --topbar-h: 92px;
+  --topbar-h: 128px;
 
   /* The unfinished list's visible height. Fixed on purpose: the panel must not
      grow as items are added, so the list scrolls inside this instead. Chosen to
@@ -57,8 +57,10 @@ body {
 .topbar {
   height: var(--topbar-h);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 9px;
   padding: 0 var(--gap);
   border-bottom: 1px solid var(--border);
   background: var(--bg);
@@ -1139,4 +1141,48 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
+}
+
+/* --- Page tabs ------------------------------------------------------------ */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tab {
+  padding: 6px 15px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.tab.is-active {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/* --- Assignments page ----------------------------------------------------- */
+
+.assignments { margin: var(--gap); }
+
+.assignments .panel-body {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
 }

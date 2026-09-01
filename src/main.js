@@ -1169,6 +1169,42 @@ timelineGrid.addEventListener('click', (event) => {
   render();
 });
 
+// --- pages ----------------------------------------------------------------
+
+// The hash is the source of truth for which page is showing, so back, forward,
+// refresh, and bookmarking all work without any state of our own. Switching is
+// a view change rather than a page load, which is the point: a page load would
+// run reconcileOpenRun() and silently pause a running timer every time you
+// looked at another page.
+const PAGES = ['tasks', 'assignments'];
+const PAGE_TITLES = { tasks: 'My Tasks', assignments: 'My Assignments' };
+
+const pageEls = [...document.querySelectorAll('.page')];
+const tabEls = [...document.querySelectorAll('.tab')];
+
+function currentPage() {
+  const name = location.hash.replace(/^#\/?/, '');
+  return PAGES.includes(name) ? name : 'tasks';
+}
+
+function renderPage() {
+  const page = currentPage();
+
+  for (const el of pageEls) el.hidden = el.dataset.page !== page;
+
+  for (const tab of tabEls) {
+    const active = tab.dataset.page === page;
+    tab.classList.toggle('is-active', active);
+    if (active) tab.setAttribute('aria-current', 'page');
+    else tab.removeAttribute('aria-current');
+  }
+
+  document.title = `${PAGE_TITLES[page]} \u00b7 Tasky`;
+}
+
+addEventListener('hashchange', renderPage);
+
 reconcileOpenRun();
 buildTicks();
+renderPage();
 render();
