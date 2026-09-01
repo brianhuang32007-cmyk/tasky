@@ -293,6 +293,24 @@
 
 </div>
 
+<!-- Bottom of the page, deliberately below everything it destroys. -->
+<div class="reset-zone">
+  <button class="btn-reset" type="button" data-action="reset">Reset tracked data</button>
+
+  <div class="reset-confirm" data-region="reset-confirm" hidden>
+    <p class="reset-warning">
+      This erases every unfinished item, log entry, calendar block, goal, and
+      analysis on this browser. It cannot be undone.
+    </p>
+    <div class="reset-actions">
+      <button class="btn-reset is-danger" type="button" data-action="reset-confirm">
+        Yes, erase everything
+      </button>
+      <button class="btn btn-secondary" type="button" data-action="reset-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <footer class="statusbar">
   <span data-region="status">Loading&hellip;</span>
 </footer>

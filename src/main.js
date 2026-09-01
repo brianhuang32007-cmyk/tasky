@@ -4,9 +4,10 @@
 // started; elapsed time is always computed from timestamps, so a throttled or
 // backgrounded tab cannot lose time. The animation frame only repaints.
 //
-// Persistence, the calendar, AI, and reminders are later milestones.
+// Every mutation goes through render(), so persisting there is what makes the
+// day survive a closed tab without each call site having to remember.
 
-import { emptyState } from './storage.js';
+import { clear as clearStorage, emptyState, load, save } from './storage.js';
 import {
   formatClock,
   formatHuman,
@@ -25,7 +26,14 @@ const MIN_BLOCK_PX = 22; // a 3-minute block still has to be grabbable
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-const state = emptyState();
+let state = load();
+
+// Whether the last write actually landed. Surfaced in the status bar rather
+// than swallowed — silently failing to save a day is worse than saying so.
+let storageOk = true;
+
+// Two-step, so a stray click cannot erase everything.
+let resetArmed = false;
 
 const form = document.querySelector('[data-form="capture"]');
 const nameInput = form.elements.name;
@@ -57,6 +65,8 @@ const analyzeButton = document.querySelector('[data-action="analyze"]');
 const analyzeDateRegion = document.querySelector('[data-region="analyze-date"]');
 const analysisStatusRegion = document.querySelector('[data-region="analysis-status"]');
 const analysisRegion = document.querySelector('[data-region="analysis"]');
+const resetTrigger = document.querySelector('[data-action="reset"]');
+const resetConfirm = document.querySelector('[data-region="reset-confirm"]');
 
 // randomUUID needs a secure context. file:// qualifies in Chrome, but the
 // standalone preview bundle should not break anywhere it does not.
@@ -65,6 +75,57 @@ const newId = () =>
   `i${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
 const selectedItem = () => state.items.find((i) => i.id === state.selectedId);
+
+// --- persistence ----------------------------------------------------------
+
+function persist() {
+  storageOk = save(state);
+}
+
+/**
+ * Closes a run that was still open when the tab went away.
+ *
+ * The run is credited only up to `savedAt` — the last moment the app is known
+ * to have been alive — never up to now. Crediting to now would invent hours of
+ * work for a tab that was closed overnight, which is the worst thing a time
+ * tracker can do. A heartbeat keeps savedAt within a few seconds of the truth.
+ */
+function reconcileOpenRun() {
+  if (state.runningSince === null) return;
+
+  const endedAt = Math.max(state.runningSince, state.savedAt ?? state.runningSince);
+  if (state.selectedId && endedAt > state.runningSince) {
+    state.segments.push({
+      id: newId(),
+      itemId: state.selectedId,
+      startedAt: state.runningSince,
+      endedAt,
+    });
+  }
+  state.runningSince = null;
+}
+
+// While the timer runs, nothing else triggers a write, so a crash would lose
+// the whole stretch. This bounds that loss to a few seconds.
+let heartbeat = null;
+
+function syncHeartbeat() {
+  const running = state.runningSince !== null;
+  if (running && heartbeat === null) {
+    heartbeat = setInterval(persist, 5000);
+  } else if (!running && heartbeat !== null) {
+    clearInterval(heartbeat);
+    heartbeat = null;
+  }
+}
+
+function resetEverything() {
+  clearStorage();
+  state = emptyState();
+  resetArmed = false;
+  analysisPending = false;
+  analysisError = null;
+}
 
 // --- time ----------------------------------------------------------------
 
@@ -279,7 +340,10 @@ function renderItems() {
   }
 
   const n = state.items.length;
-  statusRegion.textContent = `${n} unfinished item${n === 1 ? '' : 's'}`;
+  const count = `${n} unfinished item${n === 1 ? '' : 's'}`;
+  statusRegion.textContent = storageOk
+    ? count
+    : `${count} · not saved — this browser is blocking local storage`;
 }
 
 function logRow(entry) {
@@ -602,6 +666,11 @@ function renderAnalysis() {
   analysisRegion.replaceChildren(...state.analysis.sections.map(analysisSection));
 }
 
+function renderReset() {
+  resetTrigger.hidden = resetArmed;
+  resetConfirm.hidden = !resetArmed;
+}
+
 // --- calendar -------------------------------------------------------------
 
 const entryMinutes = (entry) => Math.round(elapsedMs(entry.itemId) / 60_000);
@@ -825,14 +894,18 @@ function paintTimer() {
 }
 
 function render() {
+  persist();
+
   renderItems();
   renderTimerItem();
   renderControls();
   renderLog();
   renderCalendar();
   renderAnalysis();
+  renderReset();
   paintTimer();
   syncLoop();
+  syncHeartbeat();
 }
 
 // --- animation -----------------------------------------------------------
@@ -1053,6 +1126,30 @@ analyzeButton.addEventListener('click', () => {
   runAnalysis();
 });
 
+resetTrigger.addEventListener('click', () => {
+  resetArmed = true;
+  render();
+});
+
+resetConfirm.addEventListener('click', (event) => {
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (action === 'reset-cancel') {
+    resetArmed = false;
+    render();
+  } else if (action === 'reset-confirm') {
+    resetEverything();
+    render();
+  }
+});
+
+// Checkpoints, not state changes: they keep savedAt close to the truth so a
+// run interrupted by a closed tab is credited accurately on the next load.
+// Switching tabs must not pause a running timer, so neither of these banks.
+addEventListener('pagehide', () => persist());
+addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') persist();
+});
+
 timelineGrid.addEventListener('click', (event) => {
   const logId = event.target.closest('[data-unplace]')?.dataset.unplace;
   if (!logId) return;
@@ -1061,5 +1158,6 @@ timelineGrid.addEventListener('click', (event) => {
   render();
 });
 
+reconcileOpenRun();
 buildTicks();
 render();

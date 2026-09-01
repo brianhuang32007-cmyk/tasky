@@ -29,7 +29,20 @@ export function emptyState() {
     // The last analysis, with a fingerprint of the data it was generated from,
     // so a stale one is never presented as current.
     analysis: null, // { sections, generatedAt, fingerprint, goalCount }
+
+    // The moment of the last successful write. On load this is the latest
+    // point the app is known to have been alive, which is what bounds an
+    // interrupted run — see reconcileOpenRun() in main.js.
+    savedAt: null,
   };
+}
+
+/**
+ * Fills in anything a stored state predates, so a save written by an older
+ * build still loads instead of throwing on a missing field.
+ */
+function withDefaults(stored) {
+  return { ...emptyState(), ...stored };
 }
 
 export function load() {
@@ -44,15 +57,28 @@ export function load() {
 
   try {
     const parsed = JSON.parse(raw);
-    return parsed && parsed.version === 1 ? parsed : emptyState();
+    return parsed && parsed.version === 1 ? withDefaults(parsed) : emptyState();
   } catch {
+    // Corrupt entry: start clean rather than failing to boot.
     return emptyState();
   }
 }
 
 export function save(state) {
   try {
+    state.savedAt = Date.now();
     localStorage.setItem(KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    // Quota exceeded, or storage blocked. The caller surfaces this rather
+    // than letting the user believe their day is being kept.
+    return false;
+  }
+}
+
+export function clear() {
+  try {
+    localStorage.removeItem(KEY);
     return true;
   } catch {
     return false;

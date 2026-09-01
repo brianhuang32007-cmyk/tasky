@@ -88,6 +88,30 @@ happened. Deleting a log entry deletes its segments too.
 Day totals sum stored milliseconds per `kind` and are never parsed back out of
 formatted strings.
 
+### Persistence
+
+Every mutation already goes through `render()`, so `render()` writes. That is
+what makes a closed tab survivable without each call site having to remember,
+and it means there is exactly one place persistence can be forgotten.
+
+**An interrupted run is credited only up to `savedAt`** — the last moment the
+app is known to have been alive — never up to now. A tab closed overnight
+mid-run must not come back claiming eight hours of work; inventing tracked time
+is the worst thing this app could do. `pagehide` and `visibilitychange` keep
+`savedAt` current, and a 5-second heartbeat while the timer runs bounds what a
+crash can lose. Neither lifecycle handler banks the run, because switching tabs
+must not pause a running timer.
+
+The timer therefore always returns **paused** after a reload, with the time up
+to the interruption preserved.
+
+A failed write is surfaced in the status bar rather than swallowed. A stored
+state missing newer fields is filled from `emptyState()`, and a corrupt entry
+boots clean instead of failing to start.
+
+**Reset tracked data** at the foot of the page wipes everything. It is two-step
+rather than a modal — the project has no modals — because it cannot be undone.
+
 ### Calendar
 
 `placements` maps a **log entry id to a start minute of the day**, and that is
@@ -210,7 +234,7 @@ Out of scope for the MVP, deliberately: accounts and auth, sync across devices,
 CSV import or export, teams and sharing, recurring tasks, subtasks, tags, and
 project grouping.
 
-Deferred but expected: **accounts.** Storage stays behind one module so this
+Deferred but expected: **accounts and sync.** Storage stays behind one module so this
 does not become a rewrite.
 
 ### Analysis
