@@ -194,6 +194,35 @@ value ever reaches `addAssignment` from somewhere other than that input.
 Time is free text on purpose ("9am", "period 3", "after lunch"), because a
 picker would demand precision the user may not have.
 
+### The progress page
+
+`#progress/<id>` is a third page addressed by assignment. The id is resolved
+from the hash on every route, so a link to a deleted assignment falls back to
+the list rather than rendering a page about nothing — and deleting the
+assignment you are looking at bounces you back. The Assignments tab stays lit,
+since progress is a sub-page of it.
+
+Progress lives on the assignment record and is attached on first use, so
+existing assignments need no migration. It is **flat rather than nested per
+mode** — `manual`, then `total`/`subtasks`, then `count`/`checked` — so
+switching modes keeps every mode's own work instead of discarding it. Only the
+active mode's fields are read.
+
+`percentOf()` is the single place a percentage is derived, whichever mode is
+in use: the manual value, earned points over total, or ticked boxes over count.
+Both ratios guard a zero denominator, which means "not set up yet" rather than
+an error.
+
+Weighted subtasks are added through a form and listed read-only, rather than
+being editable rows — a dynamic list of live inputs cannot be re-rendered on
+every keystroke without stealing the caret. Where a value must be written back
+into an input, `setValue()` writes only when it actually differs, for the same
+reason.
+
+**Navigation calls the full `render()`, not just `renderPage()`.** Leaving the
+progress page has to rebuild the assignments list so the row reflects the
+progress just edited.
+
 ### Per-page theming
 
 Assignments is **neon cyan**; Tasks stays warm orange. This is done by

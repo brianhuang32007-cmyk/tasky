@@ -79,6 +79,34 @@ const timeField = document.querySelector('[data-region="time"]');
 const descField = document.querySelector('[data-region="desc"]');
 const assignmentsEmptyTpl = document.querySelector('[data-template="assignments-empty"]');
 const resetZones = [...document.querySelectorAll('.reset-zone')];
+const progressNameRegion = document.querySelector('[data-region="progress-name"]');
+const progressBadgeRegion = document.querySelector('[data-region="progress-badge"]');
+const progressWhenRegion = document.querySelector('[data-region="progress-when"]');
+const noteField = document.querySelector('[data-region="progress-note"]');
+const noteCount = document.querySelector('[data-region="note-count"]');
+const progressFill = document.querySelector('[data-region="progress-fill"]');
+const progressPercentRegion = document.querySelector('[data-region="progress-percent"]');
+const modesRegion = document.querySelector('[data-region="modes"]');
+const slider = document.querySelector('[data-region="slider"]');
+const totalPointsField = document.querySelector('[data-region="total-points"]');
+const pointsSummary = document.querySelector('[data-region="points-summary"]');
+const subtaskForm = document.querySelector('[data-form="subtask"]');
+const subtaskHint = document.querySelector('[data-region="subtask-hint"]');
+const subtasksRegion = document.querySelector('[data-region="subtasks"]');
+const boxCountField = document.querySelector('[data-region="box-count"]');
+const boxesSummary = document.querySelector('[data-region="boxes-summary"]');
+const boxesRegion = document.querySelector('[data-region="boxes"]');
+const modePanels = {
+  manual: document.querySelector('[data-region="mode-manual"]'),
+  weighted: document.querySelector('[data-region="mode-weighted"]'),
+  unweighted: document.querySelector('[data-region="mode-unweighted"]'),
+};
+
+/** Only write a value that actually changed, so typing is never interrupted. */
+function setValue(el, value) {
+  const next = String(value);
+  if (el.value !== next) el.value = next;
+}
 
 // randomUUID needs a secure context. file:// qualifies in Chrome, but the
 // standalone preview bundle should not break anywhere it does not.
@@ -952,6 +980,7 @@ function render() {
   renderAnalysis();
   renderAssignments();
   renderReset();
+  renderPage();
   paintTimer();
   syncLoop();
   syncHeartbeat();
@@ -1242,6 +1271,112 @@ function onAssignmentClick(event) {
 assignmentsRegion.addEventListener('click', onAssignmentClick);
 assignmentsDoneRegion.addEventListener('click', onAssignmentClick);
 
+// --- progress page events ---------------------------------------------------
+
+noteField.addEventListener('input', () => {
+  if (!progressEntry) return;
+  progressOf(progressEntry).note = noteField.value.slice(0, NOTE_LIMIT);
+  commitProgress();
+});
+
+slider.addEventListener('input', () => {
+  if (!progressEntry) return;
+  progressOf(progressEntry).manual = clampPercent(Number(slider.value));
+  commitProgress();
+});
+
+modesRegion.addEventListener('change', (event) => {
+  if (!progressEntry || event.target.name !== 'mode') return;
+  // Switching keeps every mode's own work, so flipping back loses nothing.
+  progressOf(progressEntry).mode = event.target.value;
+  commitProgress();
+});
+
+totalPointsField.addEventListener('input', () => {
+  if (!progressEntry) return;
+  progressOf(progressEntry).total = Math.max(0, Math.floor(Number(totalPointsField.value) || 0));
+  commitProgress();
+});
+
+subtaskForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!progressEntry) return;
+
+  const fields = subtaskForm.elements;
+  const name = fields.name.value.trim();
+  const points = Math.max(0, Math.floor(Number(fields.points.value) || 0));
+
+  if (name === '') {
+    subtaskHint.textContent = 'Name the subtask first.';
+    fields.name.focus();
+    return;
+  }
+  if (points === 0) {
+    subtaskHint.textContent = 'Give it a point value — that is what sets its weight.';
+    fields.points.focus();
+    return;
+  }
+
+  progressOf(progressEntry).subtasks.push({
+    id: newId(),
+    name: name.slice(0, NAME_LIMIT),
+    points,
+    done: false,
+  });
+
+  subtaskForm.reset();
+  subtaskHint.textContent = '';
+  commitProgress();
+  fields.name.focus();
+});
+
+subtaskForm.addEventListener('input', () => {
+  subtaskHint.textContent = '';
+});
+
+subtasksRegion.addEventListener('click', (event) => {
+  if (!progressEntry) return;
+  const p = progressOf(progressEntry);
+
+  const removeId = event.target.closest('[data-remove-subtask]')?.dataset.removeSubtask;
+  if (removeId) {
+    p.subtasks = p.subtasks.filter((t) => t.id !== removeId);
+    commitProgress();
+    return;
+  }
+
+  const toggleId = event.target.dataset?.subtaskId;
+  if (toggleId) {
+    const task = p.subtasks.find((t) => t.id === toggleId);
+    if (task) task.done = event.target.checked;
+    commitProgress();
+  }
+});
+
+boxCountField.addEventListener('input', () => {
+  if (!progressEntry) return;
+  const p = progressOf(progressEntry);
+
+  p.count = Math.max(0, Math.min(MAX_BOXES, Math.floor(Number(boxCountField.value) || 0)));
+  // Ticks are kept when the count grows or shrinks, so a mistyped number is
+  // not destructive.
+  p.checked = Array.from({ length: p.count }, (_, i) => Boolean(p.checked[i]));
+  commitProgress();
+});
+
+boxesRegion.addEventListener('change', (event) => {
+  if (!progressEntry) return;
+  const index = event.target.dataset?.boxIndex;
+  if (index === undefined) return;
+
+  progressOf(progressEntry).checked[Number(index)] = event.target.checked;
+  commitProgress();
+});
+
+document.querySelector('[data-action="back-to-assignments"]').addEventListener('click', () => {
+  location.hash = '#assignments';
+});
+
 for (const zone of resetZones) {
   zone.addEventListener('click', (event) => {
     const action = event.target.closest('[data-action]')?.dataset.action;
@@ -1325,6 +1460,54 @@ function buildDayOptions() {
 // data in case a value ever arrives from somewhere other than that input.
 const NAME_LIMIT = 50;
 const DESCRIPTION_LIMIT = 50;
+const NOTE_LIMIT = 350;
+const MAX_BOXES = 50;
+
+/**
+ * Progress lives on the assignment record. Flat rather than nested per mode:
+ * each mode reads only its own fields, and switching modes keeps the other
+ * modes' work rather than discarding it.
+ */
+function emptyProgress() {
+  return {
+    note: '',
+    mode: 'manual',
+    manual: 0,        // manual: the percentage itself
+    total: 100,       // weighted: points that count as finished
+    subtasks: [],     // weighted: { id, name, points, done }
+    count: 0,         // unweighted: how many boxes
+    checked: [],      // unweighted: one boolean per box
+  };
+}
+
+/** Attached on first use, so existing assignments need no migration. */
+function progressOf(entry) {
+  entry.progress = { ...emptyProgress(), ...(entry.progress ?? {}) };
+  return entry.progress;
+}
+
+const clampPercent = (n) => Math.max(0, Math.min(100, Math.round(n)));
+
+/** The one place a percentage is derived, whichever mode is in use. */
+function percentOf(entry) {
+  const p = entry.progress;
+  if (!p) return 0;
+
+  if (p.mode === 'weighted') {
+    // Guard the divide: a total of zero means "not set up yet", not an error.
+    if (!p.total) return 0;
+    const earned = p.subtasks.reduce((sum, t) => sum + (t.done ? t.points : 0), 0);
+    return clampPercent((earned / p.total) * 100);
+  }
+
+  if (p.mode === 'unweighted') {
+    if (!p.count) return 0;
+    const done = p.checked.slice(0, p.count).filter(Boolean).length;
+    return clampPercent((done / p.count) * 100);
+  }
+
+  return clampPercent(p.manual);
+}
 
 function addAssignment({ name, kind, day, month, time, description }) {
   state.assignments.push({
@@ -1404,8 +1587,32 @@ function assignmentRow(entry) {
     li.append(time);
   }
 
+  const percent = percentOf(entry);
+  if (!isDone(entry) && percent > 0) {
+    const meter = document.createElement('span');
+    meter.className = 'row-progress';
+    meter.title = `${percent}% done`;
+
+    const fill = document.createElement('span');
+    fill.className = 'row-progress-fill';
+    fill.style.width = `${percent}%`;
+
+    const label = document.createElement('span');
+    label.className = 'row-progress-label';
+    label.textContent = `${percent}%`;
+
+    meter.append(fill);
+    li.append(meter, label);
+  }
+
   // Only what is still open can be completed; both states can be deleted.
   if (!isDone(entry)) {
+    const progress = document.createElement('a');
+    progress.className = 'btn-progress';
+    progress.href = `#progress/${entry.id}`;
+    progress.textContent = 'Progress';
+    li.append(progress);
+
     const done = document.createElement('button');
     done.type = 'button';
     done.className = 'item-check';
@@ -1502,6 +1709,148 @@ function renderAssignments() {
   renderAssignmentTotals();
 }
 
+// --- the progress page ------------------------------------------------------
+
+// Which assignment the progress page is showing. Derived from the hash on
+// every route, so it can never point at something that has been deleted.
+let progressEntry = null;
+
+function subtaskRow(entry, task) {
+  const p = entry.progress;
+  const li = document.createElement('li');
+  li.className = task.done ? 'subtask is-done' : 'subtask';
+
+  const box = document.createElement('input');
+  box.type = 'checkbox';
+  box.className = 'subtask-box';
+  box.checked = task.done;
+  box.dataset.subtaskId = task.id;
+  box.setAttribute('aria-label', `Mark ${task.name} done`);
+
+  const name = document.createElement('span');
+  name.className = 'subtask-name';
+  name.textContent = task.name;
+  name.title = task.name;
+
+  const points = document.createElement('span');
+  points.className = 'subtask-points';
+  points.textContent = `${task.points} pt${task.points === 1 ? '' : 's'}`;
+
+  const weight = document.createElement('span');
+  weight.className = 'subtask-weight';
+  weight.textContent = p.total ? `${Math.round((task.points / p.total) * 100)}%` : '—';
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'item-delete';
+  remove.dataset.removeSubtask = task.id;
+  remove.setAttribute('aria-label', `Remove ${task.name}`);
+  remove.append(deleteIcon());
+
+  li.append(box, name, points, weight, remove);
+  return li;
+}
+
+function renderSubtasks(entry) {
+  const p = entry.progress;
+
+  if (p.subtasks.length === 0) {
+    subtasksRegion.replaceChildren(
+      placeholder('No subtasks yet. Add one above with the points it is worth.'),
+    );
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'subtask-list';
+    list.append(...p.subtasks.map((task) => subtaskRow(entry, task)));
+    subtasksRegion.replaceChildren(list);
+  }
+
+  const listed = p.subtasks.reduce((sum, t) => sum + t.points, 0);
+  const earned = p.subtasks.reduce((sum, t) => sum + (t.done ? t.points : 0), 0);
+  pointsSummary.textContent = p.total
+    ? `${earned} of ${p.total} earned · ${listed} listed`
+    : 'Set a total above for the weights to mean anything.';
+}
+
+function renderBoxes(entry) {
+  const p = entry.progress;
+
+  if (p.count === 0) {
+    boxesRegion.replaceChildren(placeholder('Choose how many subtasks there are.'));
+    boxesSummary.textContent = '';
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'box-grid';
+
+  for (let i = 0; i < p.count; i += 1) {
+    const label = document.createElement('label');
+    label.className = 'box';
+
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = Boolean(p.checked[i]);
+    box.dataset.boxIndex = String(i);
+    box.setAttribute('aria-label', `Subtask ${i + 1}`);
+
+    const num = document.createElement('span');
+    num.textContent = String(i + 1);
+
+    label.append(box, num);
+    wrap.append(label);
+  }
+
+  boxesRegion.replaceChildren(wrap);
+
+  const done = p.checked.slice(0, p.count).filter(Boolean).length;
+  boxesSummary.textContent =
+    `${done} of ${p.count} ticked · ${Math.round(100 / p.count)}% each`;
+}
+
+function renderProgress() {
+  const entry = progressEntry;
+  if (!entry) return;
+
+  const p = progressOf(entry);
+
+  progressNameRegion.textContent = entry.name;
+  progressBadgeRegion.className = `badge badge-${entry.kind}`;
+  progressBadgeRegion.textContent = KIND_LABELS[entry.kind];
+
+  const when = formatWhen(entry);
+  progressWhenRegion.textContent = when
+    ? (entry.kind === 'assignment' ? `Due ${when}` : when)
+    : '';
+
+  setValue(noteField, p.note);
+  noteCount.textContent = String(p.note.length);
+
+  const percent = percentOf(entry);
+  progressFill.style.width = `${percent}%`;
+  progressPercentRegion.textContent = `${percent}%`;
+
+  for (const radio of modesRegion.querySelectorAll('input[name="mode"]')) {
+    radio.checked = radio.value === p.mode;
+  }
+  for (const [mode, panel] of Object.entries(modePanels)) {
+    panel.hidden = mode !== p.mode;
+  }
+
+  setValue(slider, p.manual);
+  setValue(totalPointsField, p.total);
+  setValue(boxCountField, p.count);
+
+  renderSubtasks(entry);
+  renderBoxes(entry);
+}
+
+/** A progress edit changes no structure elsewhere, so it saves and repaints. */
+function commitProgress() {
+  persist();
+  renderProgress();
+}
+
 // --- pages ----------------------------------------------------------------
 
 // The hash is the source of truth for which page is showing, so back, forward,
@@ -1509,14 +1858,29 @@ function renderAssignments() {
 // a view change rather than a page load, which is the point: a page load would
 // run reconcileOpenRun() and silently pause a running timer every time you
 // looked at another page.
-const PAGES = ['tasks', 'assignments'];
-const PAGE_TITLES = { tasks: 'My Tasks', assignments: 'My Assignments' };
+const PAGES = ['tasks', 'assignments', 'progress'];
+const PAGE_TITLES = { tasks: 'My Tasks', assignments: 'My Assignments', progress: 'Progress' };
+
+// Progress is a sub-page of Assignments, so that tab stays lit while on it.
+const TAB_FOR = { tasks: 'tasks', assignments: 'assignments', progress: 'assignments' };
 
 const pageEls = [...document.querySelectorAll('.page')];
 const tabEls = [...document.querySelectorAll('.tab')];
 
+/**
+ * `#progress/<id>` carries which assignment it is showing. Resolving the id
+ * here means a link to a deleted assignment falls back to the list instead of
+ * rendering a page about nothing.
+ */
 function currentPage() {
-  const name = location.hash.replace(/^#\/?/, '');
+  const [name, param] = location.hash.replace(/^#\/?/, '').split('/');
+
+  if (name === 'progress') {
+    progressEntry = state.assignments.find((a) => a.id === param) ?? null;
+    return progressEntry ? 'progress' : 'assignments';
+  }
+
+  progressEntry = null;
   return PAGES.includes(name) ? name : 'tasks';
 }
 
@@ -1526,20 +1890,23 @@ function renderPage() {
   for (const el of pageEls) el.hidden = el.dataset.page !== page;
 
   for (const tab of tabEls) {
-    const active = tab.dataset.page === page;
+    const active = tab.dataset.page === TAB_FOR[page];
     tab.classList.toggle('is-active', active);
     if (active) tab.setAttribute('aria-current', 'page');
     else tab.removeAttribute('aria-current');
   }
 
   document.title = `${PAGE_TITLES[page]} \u00b7 Tasky`;
+
+  if (page === 'progress') renderProgress();
 }
 
-addEventListener('hashchange', renderPage);
+// A full render, not just renderPage: leaving the progress page has to rebuild
+// the assignments list so the row reflects the progress just edited.
+addEventListener('hashchange', render);
 
 reconcileOpenRun();
 buildTicks();
 buildMonthOptions();
 buildDayOptions();
-renderPage();
-render();
+render(); // renderPage() runs inside it

@@ -1182,7 +1182,8 @@ body {
    palette up on its own, which is the whole point of having tokens — and the
    header sits outside this scope, so the tiger and the tabs stay warm. */
 
-.page[data-page="assignments"] {
+.page[data-page="assignments"],
+.page[data-page="progress"] {
   --bg: #eefbfd;
   --surface: #ffffff;
   --border: #bfe9f1;
@@ -1222,24 +1223,29 @@ body {
 
 .assignments { padding: var(--gap); }
 
-.page[data-page="assignments"] .panel {
+.page[data-page="assignments"] .panel,
+.page[data-page="progress"] .panel {
   box-shadow: var(--glow);
 }
 
-.page[data-page="assignments"] .panel-title {
+.page[data-page="assignments"] .panel-title,
+.page[data-page="progress"] .panel-title {
   color: var(--accent-strong);
 }
 
 /* Interactive elements glow on the way in, so the theme shows in use and not
    only at rest. Applies to whatever gets built here later. */
 .page[data-page="assignments"] .btn-primary:hover:not(:disabled),
-.page[data-page="assignments"] .btn-add:hover,
-.page[data-page="assignments"] .btn-manual:hover {
+.page[data-page="assignments"] .btn-manual:hover,
+.page[data-page="progress"] .btn-primary:hover:not(:disabled),
+.page[data-page="progress"] .btn-manual:hover {
   box-shadow: var(--glow);
 }
 
 .page[data-page="assignments"] input:focus-visible,
-.page[data-page="assignments"] textarea:focus-visible {
+.page[data-page="assignments"] textarea:focus-visible,
+.page[data-page="progress"] input:focus-visible,
+.page[data-page="progress"] textarea:focus-visible {
   box-shadow: 0 0 0 3px var(--accent-soft), var(--glow);
 }
 
@@ -1595,4 +1601,287 @@ body {
 
 .assignment-form .seg input:focus-visible + span {
   outline-color: var(--type-assignment-ink);
+}
+
+/* --- Progress on an assignment row ---------------------------------------- */
+
+.btn-progress {
+  flex: none;
+  padding: 5px 12px;
+  border: 1px solid var(--type, var(--accent));
+  border-radius: 999px;
+  color: var(--type-ink, var(--accent-strong));
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-progress:hover { background: var(--type-soft, var(--accent-soft)); }
+
+.btn-progress:focus-visible {
+  outline: 2px solid var(--type, var(--accent));
+  outline-offset: 2px;
+}
+
+.row-progress {
+  position: relative;
+  flex: none;
+  width: 54px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.row-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--type, var(--accent));
+}
+
+.row-progress-label {
+  flex: none;
+  min-width: 34px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--muted);
+}
+
+/* --- The progress page ----------------------------------------------------- */
+
+.progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.progress-name {
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.progress-note {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.progress-note::placeholder { color: var(--muted); }
+
+.progress-note:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.char-count {
+  margin: 5px 2px 16px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--muted);
+}
+
+.progress-readout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.progress-track {
+  flex: 1;
+  height: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: var(--glow);
+  transition: width 0.18s ease;
+}
+
+.progress-percent {
+  flex: none;
+  min-width: 52px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--accent-strong);
+}
+
+.segmented-modes { margin-bottom: 14px; }
+
+.mode-panel {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.progress-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.field-row .field-label { margin-bottom: 0; }
+
+.num-input {
+  width: 88px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.num-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.subtask-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.subtask {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+
+.subtask-box,
+.box input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.subtask-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtask.is-done .subtask-name {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--border);
+}
+
+.subtask-points {
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.subtask-weight {
+  flex: none;
+  min-width: 44px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.box-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.box:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.progress-back {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 var(--gap);
 }

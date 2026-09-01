@@ -415,6 +415,105 @@
 
 </div><!-- /page: assignments -->
 
+<div class="page" data-page="progress" hidden>
+  <div class="assignments">
+
+    <section class="panel" aria-labelledby="progress-heading">
+      <h2 id="progress-heading" class="panel-title">Progress</h2>
+      <div class="panel-body">
+
+        <div class="progress-head">
+          <span class="progress-name" data-region="progress-name"></span>
+          <span class="badge" data-region="progress-badge"></span>
+          <span class="assignment-when" data-region="progress-when"></span>
+        </div>
+
+        <label class="field-label" for="progress-note">Notes</label>
+        <textarea
+          id="progress-note"
+          class="progress-note"
+          maxlength="350"
+          rows="4"
+          placeholder="Anything worth remembering about this one…"
+          data-region="progress-note"></textarea>
+        <p class="char-count"><span data-region="note-count">0</span> / 350</p>
+
+        <div class="progress-readout">
+          <div class="progress-track">
+            <div class="progress-fill" data-region="progress-fill"></div>
+          </div>
+          <span class="progress-percent" data-region="progress-percent">0%</span>
+        </div>
+
+        <div class="segmented segmented-modes" role="radiogroup"
+             aria-label="How progress is measured" data-region="modes">
+          <label class="seg">
+            <input type="radio" name="mode" value="manual" checked>
+            <span>Manual</span>
+          </label>
+          <label class="seg">
+            <input type="radio" name="mode" value="weighted">
+            <span>Weighted subtasks</span>
+          </label>
+          <label class="seg">
+            <input type="radio" name="mode" value="unweighted">
+            <span>Unweighted subtasks</span>
+          </label>
+        </div>
+
+        <div class="mode-panel" data-region="mode-manual">
+          <label class="field-label" for="progress-slider">Slide to set progress</label>
+          <input
+            id="progress-slider"
+            class="progress-slider"
+            type="range" min="0" max="100" step="1"
+            data-region="slider"
+            aria-label="Progress percent">
+        </div>
+
+        <div class="mode-panel" data-region="mode-weighted" hidden>
+          <div class="field-row">
+            <label class="field-label" for="total-points">Total points</label>
+            <input id="total-points" class="num-input" type="number" min="0"
+                   data-region="total-points">
+            <span class="field-note" data-region="points-summary"></span>
+          </div>
+
+          <form class="subtask-form" data-form="subtask">
+            <input class="assignment-name" type="text" name="name" maxlength="50"
+                   placeholder="Subtask" autocomplete="off" aria-label="Subtask name">
+            <input class="num-input" type="number" name="points" min="0"
+                   placeholder="Pts" aria-label="Points">
+            <button class="btn-manual" type="submit">Add</button>
+          </form>
+          <p class="manual-hint" data-region="subtask-hint" role="status" aria-live="polite"></p>
+
+          <div data-region="subtasks"></div>
+        </div>
+
+        <div class="mode-panel" data-region="mode-unweighted" hidden>
+          <div class="field-row">
+            <label class="field-label" for="box-count">Number of subtasks</label>
+            <input id="box-count" class="num-input" type="number" min="0" max="50"
+                   data-region="box-count">
+            <span class="field-note" data-region="boxes-summary"></span>
+          </div>
+
+          <div class="boxes" data-region="boxes"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <div class="progress-back">
+      <button class="btn btn-primary" type="button" data-action="back-to-assignments">
+        Go Back To My Assignments
+      </button>
+    </div>
+
+  </div>
+</div><!-- /page: progress -->
+
 <template data-template="assignments-empty">
   <div class="empty-state">
     <svg class="empty-mark" viewBox="0 0 48 48" aria-hidden="true">
