@@ -75,6 +75,7 @@ const whenLabel = document.querySelector('[data-region="when-label"]');
 const daySelect = document.querySelector('[data-region="day"]');
 const monthSelect = document.querySelector('[data-region="month"]');
 const timeField = document.querySelector('[data-region="time"]');
+const descField = document.querySelector('[data-region="desc"]');
 const assignmentsEmptyTpl = document.querySelector('[data-template="assignments-empty"]');
 const resetTrigger = document.querySelector('[data-action="reset"]');
 const resetConfirm = document.querySelector('[data-region="reset-confirm"]');
@@ -1192,6 +1193,7 @@ assignmentForm.addEventListener('submit', (event) => {
     day: Number(daySelect.value),
     month: Number(monthSelect.value),
     time: fields.time.value.trim(),
+    description: fields.description.value.trim(),
   });
 
   assignmentForm.reset();
@@ -1298,15 +1300,22 @@ function buildDayOptions() {
   daySelect.value = chosen && Number(chosen) <= count ? chosen : '';
 }
 
-function addAssignment({ name, kind, day, month, time }) {
+const DESCRIPTION_LIMIT = 50;
+
+function addAssignment({ name, kind, day, month, time, description }) {
   state.assignments.push({
     id: newId(),
     name,
     kind,
     day: needsDate(kind) ? day : null,
     month: needsDate(kind) ? month : null,
-    time: kind === 'event' && time ? time : null,
+    time: needsDate(kind) && time ? time : null,
+    // maxlength guards the input; this guards the data, in case a value ever
+    // arrives from somewhere other than that field.
+    description:
+      kind === 'other' && description ? description.slice(0, DESCRIPTION_LIMIT) : null,
     createdAt: Date.now(),
+    completedAt: null,
   });
 }
 
@@ -1329,13 +1338,15 @@ function renderAssignmentForm() {
   const kind = assignmentForm.elements.kind.value;
 
   whenRegion.hidden = !needsDate(kind);
-  timeField.hidden = kind !== 'event';
+  timeField.hidden = !needsDate(kind);
+  descField.hidden = kind !== 'other';
   whenLabel.textContent = kind === 'assignment' ? 'Due' : 'On';
 }
 
 function assignmentRow(entry) {
   const li = document.createElement('li');
   li.className = isDone(entry) ? 'assignment is-done' : 'assignment';
+  li.dataset.kind = entry.kind;
 
   const name = document.createElement('span');
   name.className = 'assignment-title';
@@ -1354,6 +1365,14 @@ function assignmentRow(entry) {
     date.className = 'assignment-when';
     date.textContent = entry.kind === 'assignment' ? `Due ${when}` : when;
     li.append(date);
+  }
+
+  if (entry.description) {
+    const desc = document.createElement('span');
+    desc.className = 'assignment-desc-text';
+    desc.textContent = entry.description;
+    desc.title = entry.description;
+    li.append(desc);
   }
 
   if (entry.time) {
@@ -1392,9 +1411,10 @@ function assignmentList(entries) {
   return list;
 }
 
-function totalTile(label, open, done) {
+function totalTile(label, open, done, kind) {
   const tile = document.createElement('div');
   tile.className = 'asg-total';
+  if (kind) tile.dataset.kind = kind;
 
   const heading = document.createElement('span');
   heading.className = 'asg-total-label';
@@ -1425,9 +1445,9 @@ function renderAssignmentTotals() {
   totals.className = 'asg-total-grid';
 
   totals.append(
-    totalTile('Assignments', open(of('assignment')), done(of('assignment'))),
-    totalTile('Exams / events', open(of('event')), done(of('event'))),
-    totalTile('Other', open(of('other')), done(of('other'))),
+    totalTile('Assignments', open(of('assignment')), done(of('assignment')), 'assignment'),
+    totalTile('Exams / events', open(of('event')), done(of('event')), 'event'),
+    totalTile('Other', open(of('other')), done(of('other')), 'other'),
   );
 
   const overall = totalTile('All', open(all), done(all));

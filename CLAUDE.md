@@ -176,6 +176,19 @@ Completed rows sort most-recently-done first.
 The Totals panel counts open and done for each type plus an overall tile, all
 derived at render time, so they cannot drift from the list above them.
 
+Each type owns a colour — **assignment cyan, exam/event purple, other green** —
+held in `--type-*` tokens and applied everywhere that type appears: the
+selected option in the form, the row's left edge, its badge, its time chip, and
+its totals tile. Each row and tile republishes its own type as `--type`,
+`--type-soft`, and `--type-ink`, so a component inside just reads those and
+needs no per-type rule of its own. The overall totals tile stays neutral
+deliberately, so it is not mistaken for a fourth category.
+
+Optional extras follow the type: a **time** (free text) on the two dated kinds,
+and a **description** capped at 50 characters on Other, which has no date to
+describe it. The cap is enforced twice — `maxlength` on the input for the user,
+and a slice on write for the data.
+
 Time is free text on purpose ("9am", "period 3", "after lunch"), because a
 picker would demand precision the user may not have.
 
