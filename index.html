@@ -300,24 +300,6 @@
 
 </div>
 
-<!-- Bottom of the page, deliberately below everything it destroys. -->
-<div class="reset-zone">
-  <button class="btn-reset" type="button" data-action="reset">Reset tracked data</button>
-
-  <div class="reset-confirm" data-region="reset-confirm" hidden>
-    <p class="reset-warning">
-      This erases every unfinished item, log entry, calendar block, goal, and
-      analysis on this browser. It cannot be undone.
-    </p>
-    <div class="reset-actions">
-      <button class="btn-reset is-danger" type="button" data-action="reset-confirm">
-        Yes, erase everything
-      </button>
-      <button class="btn btn-secondary" type="button" data-action="reset-cancel">Cancel</button>
-    </div>
-  </div>
-</div>
-
 </div><!-- /page: tasks -->
 
 <div class="page" data-page="assignments" hidden>
@@ -332,6 +314,7 @@
             class="assignment-name"
             type="text"
             name="name"
+            maxlength="50"
             placeholder="What is it called?"
             autocomplete="off"
             aria-label="Assignment name">
@@ -417,6 +400,25 @@
     <p class="empty-note">Add one above and it will show up here.</p>
   </div>
 </template>
+
+<!-- Shell chrome, like the status bar: it erases both pages, so it is
+     not owned by either one. -->
+<div class="reset-zone">
+  <button class="btn-reset" type="button" data-action="reset">Reset tracked data</button>
+
+  <div class="reset-confirm" data-region="reset-confirm" hidden>
+    <p class="reset-warning">
+      This erases every unfinished item, log entry, calendar block, goal, and
+      analysis on this browser. It cannot be undone.
+    </p>
+    <div class="reset-actions">
+      <button class="btn-reset is-danger" type="button" data-action="reset-confirm">
+        Yes, erase everything
+      </button>
+      <button class="btn btn-secondary" type="button" data-action="reset-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <footer class="statusbar">
   <span data-region="status">Loading&hellip;</span>

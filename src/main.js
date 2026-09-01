@@ -1300,18 +1300,19 @@ function buildDayOptions() {
   daySelect.value = chosen && Number(chosen) <= count ? chosen : '';
 }
 
+// Both capped the same way: maxlength stops the typing, the slice guards the
+// data in case a value ever arrives from somewhere other than that input.
+const NAME_LIMIT = 50;
 const DESCRIPTION_LIMIT = 50;
 
 function addAssignment({ name, kind, day, month, time, description }) {
   state.assignments.push({
     id: newId(),
-    name,
+    name: name.slice(0, NAME_LIMIT),
     kind,
     day: needsDate(kind) ? day : null,
     month: needsDate(kind) ? month : null,
     time: needsDate(kind) && time ? time : null,
-    // maxlength guards the input; this guards the data, in case a value ever
-    // arrives from somewhere other than that field.
     description:
       kind === 'other' && description ? description.slice(0, DESCRIPTION_LIMIT) : null,
     createdAt: Date.now(),

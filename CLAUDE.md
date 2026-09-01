@@ -185,9 +185,11 @@ needs no per-type rule of its own. The overall totals tile stays neutral
 deliberately, so it is not mistaken for a fourth category.
 
 Optional extras follow the type: a **time** (free text) on the two dated kinds,
-and a **description** capped at 50 characters on Other, which has no date to
-describe it. The cap is enforced twice — `maxlength` on the input for the user,
-and a slice on write for the data.
+and a **description** on Other, which has no date to describe it.
+
+Names and descriptions are both capped at 50 characters, enforced twice:
+`maxlength` stops the typing, and a slice on write guards the data in case a
+value ever reaches `addAssignment` from somewhere other than that input.
 
 Time is free text on purpose ("9am", "period 3", "after lunch"), because a
 picker would demand precision the user may not have.
@@ -210,8 +212,10 @@ colour", and on Assignments they are magenta. And `--glow` only exists inside
 the cyan scope — it is what makes the theme read as neon rather than as plain
 teal.
 
-**Reset tracked data lives inside the Tasks page**, where the data it erases
-lives. Revisit once Assignments has its own data.
+**Reset tracked data is shell chrome**, sitting with the status bar outside
+both page containers, so it shows on either page and there is one button and
+one handler rather than a copy per page. It erases everything on both pages,
+which is why it does not belong to either of them.
 
 ## Layout contract
 
