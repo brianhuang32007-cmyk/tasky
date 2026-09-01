@@ -203,6 +203,38 @@ value ever reaches `addAssignment` from somewhere other than that input.
 Time is free text on purpose ("9am", "period 3", "after lunch"), because a
 picker would demand precision the user may not have.
 
+### Reminders
+
+Three nested windows — **due within 1 day, 3 days, 1 week** — each a
+`<details>` whose summary carries a count and whose body lists the assignments
+inside it. The windows are cumulative, not exclusive: something due tomorrow
+appears in all three. That is what "due within" says, and the alternative
+(bucketing each item into exactly one band) would hide tomorrow's deadline from
+the week view, which is the opposite of a reminder.
+
+Only **open, dated** assignments are considered, so Other never appears and
+completing something drops it out immediately.
+
+`<details>` rather than a click handler and an `open` flag in state, because
+the open/closed state is then the browser's to keep. The list underneath is
+re-rendered on every change, and an element that owns its own state survives
+that without the render needing to know an expanded window exists.
+
+**Dates have no year, so a due date is the next occurrence.** `nextOccurrence()`
+walks forward from the current year to the first candidate that is not already
+past — midnight today counts as not past, so something due today is due today,
+not next year. A date that has been and gone therefore resolves to next year,
+which is the requirement stated directly. The walk is a bounded loop rather
+than arithmetic because 29 February has to be skipped in non-leap years:
+`new Date(2027, 1, 29)` silently rolls to 1 March, so the loop checks the month
+survived construction and moves on if it did not. A leap-day assignment
+resolves to the next actual 29 February.
+
+Day counts come from midnight-to-midnight differences, never from
+`Date.now()` subtraction, so "tomorrow" means the next calendar day rather than
+24 hours from this instant — an assignment due tomorrow morning is still due
+tomorrow when read at 11pm tonight.
+
 ### The progress page
 
 `#progress/<id>` is a third page addressed by assignment. The id is resolved

@@ -1435,6 +1435,45 @@ const KIND_LABELS = { assignment: 'Assignment', event: 'Exam / event', other: 'O
 // Open assignments are listed in this order — one list, grouped by type.
 const KIND_ORDER = { assignment: 0, event: 1, other: 2 };
 
+const DAY_MS = 86_400_000;
+const REMINDER_WINDOWS = [1, 3, 7];
+
+/** Midnight today, so day arithmetic is never thrown off by the time of day. */
+const startOfToday = (now = new Date()) =>
+  new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+/**
+ * A stored date carries no year, so it means the next time that day comes
+ * round: this year if it is still ahead, otherwise next year.
+ *
+ * The month check catches 29 February in a non-leap year, where the Date
+ * constructor would silently roll over to 1 March. Advancing a year at a time
+ * finds the real next leap day instead, and the bound stops it looping.
+ */
+function nextOccurrence(entry, now = new Date()) {
+  if (!entry.month) return null;
+
+  const today = startOfToday(now);
+  for (let year = now.getFullYear(); year <= now.getFullYear() + 8; year += 1) {
+    const candidate = new Date(year, entry.month - 1, entry.day);
+    if (candidate.getMonth() !== entry.month - 1) continue; // 29 Feb, not a leap year
+    if (candidate >= today) return candidate;
+  }
+  return null;
+}
+
+/** Whole days from today. 0 is today, 1 tomorrow. */
+function daysUntil(entry, now = new Date()) {
+  const due = nextOccurrence(entry, now);
+  return due === null ? null : Math.round((due - startOfToday(now)) / DAY_MS);
+}
+
+function dueLabel(days) {
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  return `in ${days} days`;
+}
+
 /** A day/month as a sortable number: 14 March becomes 314. */
 const dateKey = (entry) => (entry.month ? entry.month * 100 + entry.day : null);
 
@@ -1705,6 +1744,64 @@ function totalTile(label, open, done, kind) {
   return tile;
 }
 
+function reminderRow(entry, days) {
+  const li = document.createElement('li');
+  li.className = 'reminder-item';
+  li.dataset.kind = entry.kind;
+
+  const name = document.createElement('a');
+  name.className = 'reminder-name';
+  name.href = `#progress/${entry.id}`;
+  name.textContent = entry.name;
+  name.title = entry.name;
+
+  const kind = document.createElement('span');
+  kind.className = `badge badge-${entry.kind}`;
+  kind.textContent = KIND_LABELS[entry.kind];
+
+  const when = document.createElement('span');
+  when.className = 'reminder-when';
+  when.textContent = `${formatWhen(entry)} · ${dueLabel(days)}`;
+
+  li.append(name, kind, when);
+  return li;
+}
+
+function renderReminders() {
+  const now = new Date();
+
+  // Only open, dated assignments can be due. Windows are cumulative, so
+  // something due tomorrow shows up in all three.
+  const dated = state.assignments
+    .filter((a) => !isDone(a) && a.month)
+    .map((a) => ({ entry: a, days: daysUntil(a, now) }))
+    .filter(({ days }) => days !== null);
+
+  for (const window of REMINDER_WINDOWS) {
+    const due = dated
+      .filter(({ days }) => days <= window)
+      .sort((x, y) => x.days - y.days || x.entry.name.localeCompare(y.entry.name, undefined, { sensitivity: 'base' }));
+
+    const countRegion = document.querySelector(`[data-region="count-${window}"]`);
+    const listRegion = document.querySelector(`[data-region="list-${window}"]`);
+
+    countRegion.textContent = due.length === 0
+      ? 'None'
+      : `${due.length} due`;
+    countRegion.classList.toggle('is-none', due.length === 0);
+
+    if (due.length === 0) {
+      listRegion.replaceChildren(placeholder('Nothing due in this window.'));
+      continue;
+    }
+
+    const list = document.createElement('ul');
+    list.className = 'reminder-list';
+    list.append(...due.map(({ entry, days }) => reminderRow(entry, days)));
+    listRegion.replaceChildren(list);
+  }
+}
+
 function renderAssignmentTotals() {
   const of = (kind) => state.assignments.filter((a) => a.kind === kind);
   const open = (list) => list.filter((a) => !isDone(a)).length;
@@ -1749,6 +1846,7 @@ function renderAssignments() {
   );
 
   renderAssignmentTotals();
+  renderReminders();
 }
 
 // --- the progress page ------------------------------------------------------

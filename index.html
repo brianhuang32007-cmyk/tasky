@@ -392,6 +392,37 @@
       <div class="panel-body" data-region="assignments-done"></div>
     </section>
 
+    <section class="panel" aria-labelledby="reminders-heading">
+      <h2 id="reminders-heading" class="panel-title">Reminders</h2>
+      <div class="panel-body">
+        <!-- <details> so the open/closed state is the browser's to keep, and
+             survives the list being re-rendered underneath it. -->
+        <details class="reminder" data-window="1">
+          <summary>
+            <span class="reminder-label">Due within 1 day</span>
+            <span class="reminder-count" data-region="count-1">None</span>
+          </summary>
+          <div class="reminder-body" data-region="list-1"></div>
+        </details>
+
+        <details class="reminder" data-window="3">
+          <summary>
+            <span class="reminder-label">Due within 3 days</span>
+            <span class="reminder-count" data-region="count-3">None</span>
+          </summary>
+          <div class="reminder-body" data-region="list-3"></div>
+        </details>
+
+        <details class="reminder" data-window="7">
+          <summary>
+            <span class="reminder-label">Due within 1 week</span>
+            <span class="reminder-count" data-region="count-7">None</span>
+          </summary>
+          <div class="reminder-body" data-region="list-7"></div>
+        </details>
+      </div>
+    </section>
+
     <section class="panel" aria-labelledby="assignment-totals-heading">
       <h2 id="assignment-totals-heading" class="panel-title">Totals</h2>
       <div class="panel-body">

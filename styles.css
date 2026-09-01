@@ -1915,3 +1915,127 @@ body {
   flex-direction: column;
   gap: 10px;
 }
+
+/* --- Reminders ------------------------------------------------------------ */
+
+.reminder {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.reminder + .reminder { margin-top: 8px; }
+
+.reminder > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.reminder > summary::-webkit-details-marker { display: none; }
+
+/* A caret that turns, rather than the default triangle. */
+.reminder > summary::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.reminder[open] > summary::before { transform: rotate(45deg); }
+
+.reminder > summary:hover { background: var(--accent-soft); }
+
+.reminder > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.reminder-label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.reminder-count {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.reminder-count.is-none {
+  background: var(--bg);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.reminder-body {
+  padding: 0 13px 13px;
+}
+
+.reminder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--type, var(--accent));
+  border-radius: 9px;
+  background: var(--bg);
+}
+
+.reminder-item[data-kind="assignment"] {
+  --type: var(--type-assignment);
+  --type-soft: var(--type-assignment-soft);
+  --type-ink: var(--type-assignment-ink);
+}
+
+.reminder-item[data-kind="event"] {
+  --type: var(--type-event);
+  --type-soft: var(--type-event-soft);
+  --type-ink: var(--type-event-ink);
+}
+
+.reminder-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.reminder-name:hover { color: var(--type-ink, var(--accent-strong)); }
+
+.reminder-when {
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
