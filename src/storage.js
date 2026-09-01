@@ -81,12 +81,3 @@ export function save(state) {
     return false;
   }
 }
-
-export function clear() {
-  try {
-    localStorage.removeItem(KEY);
-    return true;
-  } catch {
-    return false;
-  }
-}

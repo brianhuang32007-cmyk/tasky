@@ -300,6 +300,19 @@
 
 </div>
 
+
+  <div class="reset-zone" data-scope="tasks">
+    <button class="btn-reset" type="button" data-action="reset">Reset tracked data</button>
+
+    <div class="reset-confirm" data-region="reset-confirm" hidden>
+      <p class="reset-warning">This erases every unfinished item, log entry, calendar block, goal, and analysis on this page. It cannot be undone. Your assignments are not affected.</p>
+      <div class="reset-actions">
+        <button class="btn-reset is-danger" type="button" data-action="reset-confirm">Yes, erase task data</button>
+        <button class="btn btn-secondary" type="button" data-action="reset-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /page: tasks -->
 
 <div class="page" data-page="assignments" hidden>
@@ -387,6 +400,19 @@
     </section>
 
   </div>
+
+  <div class="reset-zone" data-scope="assignments">
+    <button class="btn-reset" type="button" data-action="reset">Erase assignment data</button>
+
+    <div class="reset-confirm" data-region="reset-confirm" hidden>
+      <p class="reset-warning">This erases every assignment, including completed ones. It cannot be undone. Your tasks, log, and calendar are not affected.</p>
+      <div class="reset-actions">
+        <button class="btn-reset is-danger" type="button" data-action="reset-confirm">Yes, erase assignments</button>
+        <button class="btn btn-secondary" type="button" data-action="reset-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /page: assignments -->
 
 <template data-template="assignments-empty">
@@ -400,25 +426,6 @@
     <p class="empty-note">Add one above and it will show up here.</p>
   </div>
 </template>
-
-<!-- Shell chrome, like the status bar: it erases both pages, so it is
-     not owned by either one. -->
-<div class="reset-zone">
-  <button class="btn-reset" type="button" data-action="reset">Reset tracked data</button>
-
-  <div class="reset-confirm" data-region="reset-confirm" hidden>
-    <p class="reset-warning">
-      This erases every unfinished item, log entry, calendar block, goal, and
-      analysis on this browser. It cannot be undone.
-    </p>
-    <div class="reset-actions">
-      <button class="btn-reset is-danger" type="button" data-action="reset-confirm">
-        Yes, erase everything
-      </button>
-      <button class="btn btn-secondary" type="button" data-action="reset-cancel">Cancel</button>
-    </div>
-  </div>
-</div>
 
 <footer class="statusbar">
   <span data-region="status">Loading&hellip;</span>

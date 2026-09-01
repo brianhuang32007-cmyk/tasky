@@ -212,10 +212,17 @@ colour", and on Assignments they are magenta. And `--glow` only exists inside
 the cyan scope — it is what makes the theme read as neon rather than as plain
 teal.
 
-**Reset tracked data is shell chrome**, sitting with the status bar outside
-both page containers, so it shows on either page and there is one button and
-one handler rather than a copy per page. It erases everything on both pages,
-which is why it does not belong to either of them.
+**Each page erases only its own data.** *Reset tracked data* at the foot of
+Tasks clears items, segments, log, selection, calendar placements, goals, and
+the analysis; *Erase assignment data* at the foot of Assignments clears
+assignments. Neither touches the other page, and each says so in its
+confirmation.
+
+Both are two-step rather than modal — the project has no modals — because
+neither can be undone. `resetArmed` holds which scope is awaiting confirmation,
+so arming one never arms the other. Each reset assigns from a fresh
+`emptyState()` rather than a literal, so a new field is cleared by whichever
+page owns it without the reset needing to be updated.
 
 ## Layout contract
 

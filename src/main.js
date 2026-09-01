@@ -7,7 +7,7 @@
 // Every mutation goes through render(), so persisting there is what makes the
 // day survive a closed tab without each call site having to remember.
 
-import { clear as clearStorage, emptyState, load, save } from './storage.js';
+import { emptyState, load, save } from './storage.js';
 import {
   formatClock,
   formatHuman,
@@ -32,8 +32,9 @@ let state = load();
 // than swallowed — silently failing to save a day is worse than saying so.
 let storageOk = true;
 
-// Two-step, so a stray click cannot erase everything.
-let resetArmed = false;
+// Which reset is awaiting confirmation: null, 'tasks', or 'assignments'.
+// Two-step, so a stray click cannot erase a page's data.
+let resetArmed = null;
 
 const form = document.querySelector('[data-form="capture"]');
 const nameInput = form.elements.name;
@@ -77,8 +78,7 @@ const monthSelect = document.querySelector('[data-region="month"]');
 const timeField = document.querySelector('[data-region="time"]');
 const descField = document.querySelector('[data-region="desc"]');
 const assignmentsEmptyTpl = document.querySelector('[data-template="assignments-empty"]');
-const resetTrigger = document.querySelector('[data-action="reset"]');
-const resetConfirm = document.querySelector('[data-region="reset-confirm"]');
+const resetZones = [...document.querySelectorAll('.reset-zone')];
 
 // randomUUID needs a secure context. file:// qualifies in Chrome, but the
 // standalone preview bundle should not break anywhere it does not.
@@ -131,13 +131,30 @@ function syncHeartbeat() {
   }
 }
 
-function resetEverything() {
-  clearStorage();
-  state = emptyState();
-  resetArmed = false;
+/** Everything the Tasks page owns. Assignments are deliberately untouched. */
+function resetTasks() {
+  const fresh = emptyState();
+
+  state.items = fresh.items;
+  state.segments = fresh.segments;
+  state.log = fresh.log;
+  state.selectedId = fresh.selectedId;
+  state.runningSince = fresh.runningSince;
+  state.placements = fresh.placements;
+  state.calendarShown = fresh.calendarShown;
+  state.goals = fresh.goals;
+  state.analysis = fresh.analysis;
+
   analysisPending = false;
   analysisError = null;
 }
+
+/** Everything the Assignments page owns. Tasks are deliberately untouched. */
+function resetAssignments() {
+  state.assignments = emptyState().assignments;
+}
+
+const RESETS = { tasks: resetTasks, assignments: resetAssignments };
 
 // --- time ----------------------------------------------------------------
 
@@ -695,8 +712,11 @@ function renderAnalysis() {
 }
 
 function renderReset() {
-  resetTrigger.hidden = resetArmed;
-  resetConfirm.hidden = !resetArmed;
+  for (const zone of resetZones) {
+    const armed = resetArmed === zone.dataset.scope;
+    zone.querySelector('[data-action="reset"]').hidden = armed;
+    zone.querySelector('[data-region="reset-confirm"]').hidden = !armed;
+  }
 }
 
 // --- calendar -------------------------------------------------------------
@@ -1222,21 +1242,22 @@ function onAssignmentClick(event) {
 assignmentsRegion.addEventListener('click', onAssignmentClick);
 assignmentsDoneRegion.addEventListener('click', onAssignmentClick);
 
-resetTrigger.addEventListener('click', () => {
-  resetArmed = true;
-  render();
-});
+for (const zone of resetZones) {
+  zone.addEventListener('click', (event) => {
+    const action = event.target.closest('[data-action]')?.dataset.action;
+    if (!action) return;
 
-resetConfirm.addEventListener('click', (event) => {
-  const action = event.target.closest('[data-action]')?.dataset.action;
-  if (action === 'reset-cancel') {
-    resetArmed = false;
+    const scope = zone.dataset.scope;
+    if (action === 'reset') resetArmed = scope;
+    else if (action === 'reset-cancel') resetArmed = null;
+    else if (action === 'reset-confirm') {
+      RESETS[scope]();
+      resetArmed = null;
+    }
+
     render();
-  } else if (action === 'reset-confirm') {
-    resetEverything();
-    render();
-  }
-});
+  });
+}
 
 // Checkpoints, not state changes: they keep savedAt close to the truth so a
 // run interrupted by a closed tab is credited accurately on the next load.
