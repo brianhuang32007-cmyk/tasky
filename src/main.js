@@ -1386,7 +1386,7 @@ document.querySelector('[data-action="add-to-calendar"]').addEventListener('clic
 
   const plan = calendarPlan(progressEntry);
   if (!plan.ok) {
-    calMessage.textContent = `Error: calendar cannot be generated — ${plan.reason}`;
+    calMessage.textContent = 'Error: Cannot Detect Time/Date';
     calMessage.hidden = false;
     return;
   }
@@ -2020,13 +2020,20 @@ function renderCalendarExport(entry) {
   calRegion.dataset.kind = entry.kind;
 
   const plan = calendarPlan(entry);
-  calHint.textContent = plan.ok
-    ? `${formatHuman(plan.minutes * 60_000)}${plan.fromNotes ? ' — from your notes' : ''}`
-    : '';
+  calHint.textContent = plan.ok ? calendarHint(plan) : '';
 
   // Editing the notes can fix the reason, so a stale complaint is cleared as
   // soon as the export would succeed.
   if (plan.ok) hideCalMessage();
+}
+
+/** Exactly what will land in the calendar, and where each half came from. */
+function calendarHint(plan) {
+  const at = formatTimeOfDay(plan.start.getHours() * 60 + plan.start.getMinutes());
+  const when = plan.timeFrom === 'the time field' ? at : `${at} (from ${plan.timeFrom})`;
+
+  const length = formatHuman(plan.minutes * 60_000);
+  return plan.lengthFrom ? `${when} · ${length} (from ${plan.lengthFrom})` : `${when} · ${length}`;
 }
 
 function hideCalMessage() {
@@ -2065,8 +2072,13 @@ function parseTimeOfDay(raw) {
   if (/\b(noon|midday)\b/.test(text)) return { hours: 12, minutes: 0 };
   if (/\bmidnight\b/.test(text)) return { hours: 0, minutes: 0 };
 
-  // 9:30, 9.30pm, 14:00. A bare HH:MM is read as a 24-hour clock.
-  let m = text.match(/(\d{1,2})[:.](\d{2})\s*(am|pm)?/);
+  // 9:30, 14:00, 9:30am. A bare HH:MM is read as a 24-hour clock.
+  let m = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/);
+
+  // 7.45pm. A dot demands the meridiem: the name is searched too, and "3.15"
+  // in a title is a section number far more often than a time.
+  if (!m) m = text.match(/(\d{1,2})\.(\d{2})\s*(am|pm)/);
+
   if (!m) {
     // 9am, 9 pm. The meridiem is what makes a lone number readable.
     m = text.match(/(\d{1,2})\s*(am|pm)\b/);
@@ -2092,10 +2104,9 @@ function parseTimeOfDay(raw) {
 }
 
 /**
- * A duration in minutes, read out of the notes (and the description, for
- * completeness — only Other has one, and Other has no calendar button).
- * Returns null when nothing is said, which the caller reads as "use the
- * default" rather than as an error.
+ * A duration in minutes out of one piece of free text. Returns null when
+ * nothing is said, which the caller reads as "use the default" rather than as
+ * an error.
  */
 function parseDurationMinutes(text) {
   if (!text) return null;
@@ -2120,41 +2131,58 @@ const clampMinutes = (n) =>
   Number.isFinite(n) && n >= 1 ? Math.min(Math.round(n), MAX_EVENT_MINUTES) : null;
 
 /**
- * Everything the .ics needs, or a reason it cannot be built. The reason is
- * specific because "add a time" and "9am, not period 3" are different fixes.
+ * Every field the user might have written a time or a length into, in the
+ * order they are trusted. The time field leads because it exists for the
+ * purpose; the rest follow because people put "9am" in a title as readily as
+ * in the field made for it.
+ */
+const textSources = (entry) => [
+  ['the time field', entry.time],
+  ['the name', entry.name],
+  ['the description', entry.description],
+  ['the notes', entry.progress?.note],
+];
+
+/**
+ * Everything the .ics needs, or ok:false. Both halves record where they were
+ * read from, so a time picked out of a title is shown rather than silently
+ * assumed.
  */
 function calendarPlan(entry) {
   const due = nextOccurrence(entry);
-  if (!due) return { ok: false, reason: 'no date is set.' };
+  const sources = textSources(entry);
 
-  if (!entry.time) {
-    return { ok: false, reason: 'no time is set, and an event needs one.' };
+  let clock = null;
+  for (const [where, text] of sources) {
+    const found = parseTimeOfDay(text);
+    if (found) {
+      clock = { ...found, where };
+      break;
+    }
   }
 
-  const clock = parseTimeOfDay(entry.time);
-  if (!clock) {
-    return {
-      ok: false,
-      reason: `“${entry.time}” isn’t a time we can read. Try something like 9am or 14:30.`,
-    };
+  if (!due || !clock) return { ok: false };
+
+  // A length is optional in a way a time is not: nothing said anywhere means
+  // the default, not a failure.
+  let minutes = DEFAULT_EVENT_MINUTES;
+  let lengthFrom = null;
+  for (const [where, text] of sources) {
+    const found = parseDurationMinutes(text);
+    if (found !== null) {
+      minutes = found;
+      lengthFrom = where;
+      break;
+    }
   }
 
+  // The year comes from nextOccurrence(), so a date already past this year is
+  // exported as next year's — the same rule the reminders use.
   const start = new Date(
     due.getFullYear(), due.getMonth(), due.getDate(), clock.hours, clock.minutes,
   );
 
-  // The year comes from nextOccurrence(), so a date already past this year is
-  // exported as next year's — the same rule the reminders use.
-  const found = parseDurationMinutes(
-    `${entry.progress?.note ?? ''} ${entry.description ?? ''}`,
-  );
-
-  return {
-    ok: true,
-    start,
-    minutes: found ?? DEFAULT_EVENT_MINUTES,
-    fromNotes: found !== null,
-  };
+  return { ok: true, start, minutes, timeFrom: clock.where, lengthFrom };
 }
 
 const pad2 = (n) => String(n).padStart(2, '0');
