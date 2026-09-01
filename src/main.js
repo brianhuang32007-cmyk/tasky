@@ -68,6 +68,8 @@ const analysisRegion = document.querySelector('[data-region="analysis"]');
 const assignmentForm = document.querySelector('[data-form="assignment"]');
 const assignmentHint = document.querySelector('[data-region="assignment-hint"]');
 const assignmentsRegion = document.querySelector('[data-region="assignments"]');
+const assignmentsDoneRegion = document.querySelector('[data-region="assignments-done"]');
+const assignmentTotalsRegion = document.querySelector('[data-region="assignment-totals"]');
 const whenRegion = document.querySelector('[data-region="when"]');
 const whenLabel = document.querySelector('[data-region="when-label"]');
 const daySelect = document.querySelector('[data-region="day"]');
@@ -285,22 +287,27 @@ function badge(kind) {
 }
 
 const CROSS = 'M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5';
+const TICK = 'M3.6 8.4 6.6 11.4 12.4 4.9';
 
-function deleteIcon() {
+function strokeIcon(d) {
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('viewBox', '0 0 16 16');
   svg.setAttribute('aria-hidden', 'true');
 
   const path = document.createElementNS(SVG_NS, 'path');
-  path.setAttribute('d', CROSS);
+  path.setAttribute('d', d);
   path.setAttribute('stroke', 'currentColor');
   path.setAttribute('stroke-width', '1.8');
   path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('stroke-linejoin', 'round');
   path.setAttribute('fill', 'none');
 
   svg.append(path);
   return svg;
 }
+
+const deleteIcon = () => strokeIcon(CROSS);
+const checkIcon = () => strokeIcon(TICK);
 
 function itemRow(item) {
   const li = document.createElement('li');
@@ -1194,13 +1201,24 @@ assignmentForm.addEventListener('submit', (event) => {
   fields.name.focus();
 });
 
-assignmentsRegion.addEventListener('click', (event) => {
-  const id = event.target.closest('[data-assignment-id]')?.dataset.assignmentId;
-  if (!id) return;
+// One handler for both lists: complete is only ever offered on open rows.
+function onAssignmentClick(event) {
+  const completeId = event.target.closest('[data-complete-id]')?.dataset.completeId;
+  if (completeId) {
+    completeAssignment(completeId);
+    render();
+    return;
+  }
 
-  deleteAssignment(id);
-  render();
-});
+  const deleteId = event.target.closest('[data-assignment-id]')?.dataset.assignmentId;
+  if (deleteId) {
+    deleteAssignment(deleteId);
+    render();
+  }
+}
+
+assignmentsRegion.addEventListener('click', onAssignmentClick);
+assignmentsDoneRegion.addEventListener('click', onAssignmentClick);
 
 resetTrigger.addEventListener('click', () => {
   resetArmed = true;
@@ -1296,6 +1314,13 @@ function deleteAssignment(id) {
   state.assignments = state.assignments.filter((a) => a.id !== id);
 }
 
+function completeAssignment(id) {
+  const entry = state.assignments.find((a) => a.id === id);
+  if (entry) entry.completedAt = Date.now();
+}
+
+const isDone = (entry) => Boolean(entry.completedAt);
+
 const formatWhen = (entry) =>
   entry.month ? `${entry.day} ${MONTHS[entry.month - 1]}` : '';
 
@@ -1310,7 +1335,7 @@ function renderAssignmentForm() {
 
 function assignmentRow(entry) {
   const li = document.createElement('li');
-  li.className = 'assignment';
+  li.className = isDone(entry) ? 'assignment is-done' : 'assignment';
 
   const name = document.createElement('span');
   name.className = 'assignment-title';
@@ -1338,6 +1363,17 @@ function assignmentRow(entry) {
     li.append(time);
   }
 
+  // Only what is still open can be completed; both states can be deleted.
+  if (!isDone(entry)) {
+    const done = document.createElement('button');
+    done.type = 'button';
+    done.className = 'item-check';
+    done.dataset.completeId = entry.id;
+    done.setAttribute('aria-label', `Mark ${entry.name} complete`);
+    done.append(checkIcon());
+    li.append(done);
+  }
+
   const remove = document.createElement('button');
   remove.type = 'button';
   remove.className = 'item-delete';
@@ -1349,18 +1385,79 @@ function assignmentRow(entry) {
   return li;
 }
 
+function assignmentList(entries) {
+  const list = document.createElement('ul');
+  list.className = 'assignment-list';
+  list.append(...entries.map(assignmentRow));
+  return list;
+}
+
+function totalTile(label, open, done) {
+  const tile = document.createElement('div');
+  tile.className = 'asg-total';
+
+  const heading = document.createElement('span');
+  heading.className = 'asg-total-label';
+  heading.textContent = label;
+
+  const counts = document.createElement('span');
+  counts.className = 'asg-total-counts';
+
+  const openCount = document.createElement('strong');
+  openCount.textContent = String(open);
+  const doneCount = document.createElement('strong');
+  doneCount.textContent = String(done);
+
+  counts.append(openCount, document.createTextNode(' open · '),
+                doneCount, document.createTextNode(' done'));
+
+  tile.append(heading, counts);
+  return tile;
+}
+
+function renderAssignmentTotals() {
+  const of = (kind) => state.assignments.filter((a) => a.kind === kind);
+  const open = (list) => list.filter((a) => !isDone(a)).length;
+  const done = (list) => list.filter(isDone).length;
+
+  const all = state.assignments;
+  const totals = document.createElement('div');
+  totals.className = 'asg-total-grid';
+
+  totals.append(
+    totalTile('Assignments', open(of('assignment')), done(of('assignment'))),
+    totalTile('Exams / events', open(of('event')), done(of('event'))),
+    totalTile('Other', open(of('other')), done(of('other'))),
+  );
+
+  const overall = totalTile('All', open(all), done(all));
+  overall.classList.add('is-strong');
+  totals.append(overall);
+
+  assignmentTotalsRegion.replaceChildren(totals);
+}
+
 function renderAssignments() {
   renderAssignmentForm();
 
-  if (state.assignments.length === 0) {
-    assignmentsRegion.replaceChildren(assignmentsEmptyTpl.content.cloneNode(true));
-    return;
-  }
+  const openItems = state.assignments.filter((a) => !isDone(a));
+  const doneItems = state.assignments
+    .filter(isDone)
+    .sort((a, b) => b.completedAt - a.completedAt);
 
-  const list = document.createElement('ul');
-  list.className = 'assignment-list';
-  list.append(...state.assignments.map(assignmentRow));
-  assignmentsRegion.replaceChildren(list);
+  assignmentsRegion.replaceChildren(
+    openItems.length === 0
+      ? assignmentsEmptyTpl.content.cloneNode(true)
+      : assignmentList(openItems),
+  );
+
+  assignmentsDoneRegion.replaceChildren(
+    doneItems.length === 0
+      ? placeholder('Nothing completed yet.')
+      : assignmentList(doneItems),
+  );
+
+  renderAssignmentTotals();
 }
 
 // --- pages ----------------------------------------------------------------

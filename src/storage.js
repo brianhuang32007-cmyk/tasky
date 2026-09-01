@@ -24,7 +24,9 @@ export function emptyState() {
 
     // The Assignments page. Separate from items/log: an assignment is
     // something with a date, not something you run a timer against.
-    assignments: [], // { id, name, kind: 'assignment'|'event'|'other', day, month, time, createdAt }
+    // completedAt is the whole done/not-done state: a timestamp or null. One
+    // list rather than two keeps counting by type across both states trivial.
+    assignments: [], // { id, name, kind, day, month, time, createdAt, completedAt }
 
     // Free-text instructions the user gives the analysis. Stored apart from
     // activity: a goal never changes a task, a timer, or a calendar block.

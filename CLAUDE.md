@@ -167,6 +167,15 @@ then rejected — February keeps 29 days, since without a year a leap day cannot
 be ruled out and refusing a real date is worse than allowing one that needs the
 right year.
 
+`completedAt` is the whole done/not-done state — a timestamp or `null` — and
+everything stays in **one list**. Two lists would mean keeping them in sync and
+counting across both; one list makes "how many exams are still open" a filter.
+Completing is offered only on open rows; deleting works in either state.
+Completed rows sort most-recently-done first.
+
+The Totals panel counts open and done for each type plus an overall tile, all
+derived at render time, so they cannot drift from the list above them.
+
 Time is free text on purpose ("9am", "period 3", "after lunch"), because a
 picker would demand precision the user may not have.
 

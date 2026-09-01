@@ -1415,3 +1415,95 @@ body {
   background: var(--bg);
   color: var(--muted);
 }
+
+/* --- Completing an assignment --------------------------------------------- */
+
+.item-check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.item-check svg {
+  width: 16px;
+  height: 16px;
+}
+
+.item-check:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.item-check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Done rows stay legible but clearly stand back from the open ones. */
+.assignment.is-done {
+  border-left-color: var(--border);
+  background: transparent;
+}
+
+.assignment.is-done .assignment-title {
+  color: var(--muted);
+  font-weight: 500;
+  text-decoration: line-through;
+  text-decoration-color: var(--border);
+}
+
+.assignment.is-done .badge,
+.assignment.is-done .assignment-time {
+  opacity: 0.72;
+}
+
+/* --- Assignment totals ---------------------------------------------------- */
+
+.asg-total-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.asg-total {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.asg-total.is-strong {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.asg-total-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.asg-total-counts {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.asg-total-counts strong {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
