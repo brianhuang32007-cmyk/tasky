@@ -980,6 +980,16 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Never shrinks: the name has min-width 0 and gives way first. */
+.item-time {
+  flex: none;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.item.is-selected .item-time { color: var(--accent-strong); }
+
 .item-delete {
   display: grid;
   flex: none;

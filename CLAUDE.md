@@ -88,6 +88,22 @@ happened. Deleting a log entry deletes its segments too.
 Day totals sum stored milliseconds per `kind` and are never parsed back out of
 formatted strings.
 
+Time is read through two functions, and which one a caller reaches for is the
+whole design of the unfinished list. `bankedMs()` sums closed segments only;
+`elapsedMs()` adds the open run on top when the item owns it.
+
+**The unfinished list labels each row with `bankedMs()`, in brackets:
+`[2 hrs 3 min]`.** So the running row's label holds still and jumps when the
+run is paused into a segment. That is deliberate — the ticking readout is the
+timer's job, and a second clock a beat behind it would only look broken. A row
+that has never run reads `[0 sec]` rather than showing nothing, so the layout
+does not shift the first time a task is paused.
+
+`formatCompact()` caps that label at two units — hours with minutes, or minutes
+with seconds, never all three — because it sits inline beside a name where
+length costs more than the last unit of precision. Elsewhere `formatHuman()`
+still spells out all three.
+
 ### Persistence
 
 Every mutation already goes through `render()`, so `render()` writes. That is

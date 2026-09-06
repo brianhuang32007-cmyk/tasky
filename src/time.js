@@ -2,8 +2,9 @@
 // no DOM.
 //
 // Two formats exist on purpose:
-//   formatClock the live timer readout, counting like a stopwatch
-//   formatHuman completed durations and totals, spelled out in words
+//   formatClock   the live timer readout, counting like a stopwatch
+//   formatHuman   completed durations and totals, spelled out in words
+//   formatCompact the same words, capped at two units, for inline labels
 
 const MINUTE = 60_000;
 const HOUR = 3_600_000;
@@ -39,6 +40,28 @@ export function formatHuman(ms) {
   if (hours > 0) out.push(`${hours} ${hours === 1 ? 'hr' : 'hrs'}`);
   if (minutes > 0) out.push(`${minutes} min`);
   if (seconds > 0) out.push(`${seconds} sec`);
+
+  return out.length > 0 ? out.join(' ') : '0 sec';
+}
+
+/**
+ * Two units at most: hours with minutes, or minutes with seconds — never all
+ * three. This sits inline beside a task name, where length costs more than the
+ * last unit of precision, and seconds stop being interesting once there is an
+ * hour on the clock. Zero-value units are dropped as in formatHuman, so two
+ * exact hours reads "2 hrs" rather than "2 hrs 0 min".
+ */
+export function formatCompact(ms) {
+  const { hours, minutes, seconds } = parts(ms);
+  const out = [];
+
+  if (hours > 0) {
+    out.push(`${hours} ${hours === 1 ? 'hr' : 'hrs'}`);
+    if (minutes > 0) out.push(`${minutes} min`);
+  } else {
+    if (minutes > 0) out.push(`${minutes} min`);
+    if (seconds > 0) out.push(`${seconds} sec`);
+  }
 
   return out.length > 0 ? out.join(' ') : '0 sec';
 }

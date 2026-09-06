@@ -10,6 +10,7 @@
 import { emptyState, load, save } from './storage.js';
 import {
   formatClock,
+  formatCompact,
   formatHuman,
   formatTimeOfDay,
   secondHandAngle,
@@ -190,16 +191,22 @@ const RESETS = { tasks: resetTasks, assignments: resetAssignments };
 
 // --- time ----------------------------------------------------------------
 
-/** Banked segments, plus the run in progress if this item owns it. */
-function elapsedMs(itemId, now = Date.now()) {
+/**
+ * Closed segments only. Constant for as long as a run is open, which is what
+ * lets the unfinished list hold still while the timer counts.
+ */
+function bankedMs(itemId) {
   let total = 0;
   for (const seg of state.segments) {
     if (seg.itemId === itemId) total += seg.endedAt - seg.startedAt;
   }
-  if (state.runningSince !== null && state.selectedId === itemId) {
-    total += now - state.runningSince;
-  }
   return total;
+}
+
+/** Banked segments, plus the run in progress if this item owns it. */
+function elapsedMs(itemId, now = Date.now()) {
+  const running = state.runningSince !== null && state.selectedId === itemId;
+  return bankedMs(itemId) + (running ? now - state.runningSince : 0);
 }
 
 /** Closes the open run into a segment. Safe to call when nothing is running. */
@@ -376,7 +383,14 @@ function itemRow(item) {
   name.textContent = item.name;
   name.title = item.name; // full text stays reachable when the row truncates
 
-  select.append(name, badge(item.kind));
+  // Banked time, not live time: the running task's label sits still and jumps
+  // when the run is paused into a segment. The ticking readout is the timer's
+  // job, and two clocks disagreeing by a second would only look broken.
+  const spent = document.createElement('span');
+  spent.className = 'item-time';
+  spent.textContent = `[${formatCompact(bankedMs(item.id))}]`;
+
+  select.append(name, badge(item.kind), spent);
 
   const remove = document.createElement('button');
   remove.type = 'button';
