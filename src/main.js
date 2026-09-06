@@ -303,6 +303,34 @@ function addManualEntry(name, kind, ms) {
   state.log.unshift({ id: newId(), itemId, name, kind, finishedAt: endedAt });
 }
 
+/**
+ * Puts a finished task back on the unfinished list. Its segments are left
+ * exactly where they are and the item keeps its old id, so the time already
+ * banked comes back with it — the only things undone are the log entry and its
+ * calendar placement. createdAt is reset because the log never stored the
+ * original; nothing reads it.
+ */
+function resumeLogEntry(logId) {
+  const entry = state.log.find((e) => e.id === logId);
+  if (!entry) return;
+
+  state.log = state.log.filter((e) => e.id !== logId);
+  delete state.placements[logId];
+
+  // Unshifted rather than pushed: the list can scroll, and a row restored out
+  // of sight is a button that appears to have done nothing.
+  state.items.unshift({
+    id: entry.itemId,
+    name: entry.name,
+    kind: entry.kind,
+    createdAt: Date.now(),
+  });
+
+  // Selecting it would bank the open run and switch away from whatever is
+  // being timed, so an active run is left strictly alone.
+  if (state.runningSince === null) state.selectedId = entry.itemId;
+}
+
 function deleteLogEntry(logId) {
   const entry = state.log.find((e) => e.id === logId);
   if (!entry) return;
@@ -365,6 +393,32 @@ function strokeIcon(d) {
 
 const deleteIcon = () => strokeIcon(CROSS);
 const checkIcon = () => strokeIcon(TICK);
+
+const PLAY = 'M5.5 3.4 12.6 8 5.5 12.6Z';
+
+/** Filled, not stroked: a play triangle only reads as one when it is solid. */
+function resumeIcon() {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('aria-hidden', 'true');
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', PLAY);
+  path.setAttribute('fill', 'currentColor');
+
+  svg.append(path);
+  return svg;
+}
+
+/** The green triangle both lists use to put a finished thing back. */
+function resumeButton(label) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'item-resume';
+  button.setAttribute('aria-label', `Resume ${label}`);
+  button.append(resumeIcon());
+  return button;
+}
 
 function itemRow(item) {
   const li = document.createElement('li');
@@ -450,7 +504,7 @@ function logRow(entry) {
   remove.setAttribute('aria-label', `Delete ${entry.name} from the log`);
   remove.append(deleteIcon());
 
-  li.append(name, badge(entry.kind), duration, done, remove);
+  li.append(name, badge(entry.kind), duration, done, resumeButton(entry.name), remove);
   return li;
 }
 
@@ -1092,10 +1146,18 @@ itemsRegion.addEventListener('click', (event) => {
 
 logRegion.addEventListener('click', (event) => {
   const row = event.target.closest('.log-row');
-  if (!row || !event.target.closest('.item-delete')) return;
+  if (!row) return;
 
-  deleteLogEntry(row.dataset.logId);
-  render();
+  if (event.target.closest('.item-resume')) {
+    resumeLogEntry(row.dataset.logId);
+    render();
+    return;
+  }
+
+  if (event.target.closest('.item-delete')) {
+    deleteLogEntry(row.dataset.logId);
+    render();
+  }
 });
 
 manualForm.addEventListener('submit', (event) => {
@@ -1275,6 +1337,13 @@ function onAssignmentClick(event) {
   const completeId = event.target.closest('[data-complete-id]')?.dataset.completeId;
   if (completeId) {
     completeAssignment(completeId);
+    render();
+    return;
+  }
+
+  const resumeId = event.target.closest('[data-resume-id]')?.dataset.resumeId;
+  if (resumeId) {
+    resumeAssignment(resumeId);
     render();
     return;
   }
@@ -1644,6 +1713,12 @@ function completeAssignment(id) {
   if (entry) entry.completedAt = Date.now();
 }
 
+/** completedAt is the whole done/not-done state, so reopening is clearing it. */
+function resumeAssignment(id) {
+  const entry = state.assignments.find((a) => a.id === id);
+  if (entry) entry.completedAt = null;
+}
+
 const isDone = (entry) => Boolean(entry.completedAt);
 
 const formatWhen = (entry) =>
@@ -1716,7 +1791,8 @@ function assignmentRow(entry) {
     li.append(meter, label);
   }
 
-  // Only what is still open can be completed; both states can be deleted.
+  // Open rows offer progress and completion, done rows offer resuming, and
+  // both can be deleted.
   if (!isDone(entry)) {
     const progress = document.createElement('a');
     progress.className = 'btn-progress';
@@ -1731,6 +1807,10 @@ function assignmentRow(entry) {
     done.setAttribute('aria-label', `Mark ${entry.name} complete`);
     done.append(checkIcon());
     li.append(done);
+  } else {
+    const resume = resumeButton(entry.name);
+    resume.dataset.resumeId = entry.id;
+    li.append(resume);
   }
 
   const remove = document.createElement('button');

@@ -20,6 +20,12 @@
 
   --alert: #b8501f;
 
+  /* Finishing something is green, the usual convention — and so is putting a
+     finished thing back. Defined here, not per page, because both pages use it. */
+  --success: #10b981;
+  --success-strong: #047857;
+  --success-soft: #d9f7ec;
+
   /* Mascot */
   --fur-stripe: #a85514;
   --nose: #c9603a;
@@ -1221,10 +1227,6 @@ body {
 
   --alert: #be123c;
 
-  /* Finishing something is green, the usual convention. */
-  --success: #10b981;
-  --success-strong: #047857;
-
   /* What makes it read as neon rather than just teal. */
   --glow: 0 0 18px rgba(6, 182, 212, 0.32);
 
@@ -1526,6 +1528,38 @@ body {
 
 .item-check:focus-visible {
   outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Same footprint as the tick and the cross, so the row's controls stay on one
+   grid. Green because this is the one control here that puts something back
+   rather than taking it away. */
+.item-resume {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--success);
+  cursor: pointer;
+}
+
+.item-resume svg {
+  width: 15px;
+  height: 15px;
+}
+
+.item-resume:hover {
+  background: var(--success-soft);
+  color: var(--success-strong);
+}
+
+.item-resume:focus-visible {
+  outline: 2px solid var(--success);
   outline-offset: -2px;
 }
 

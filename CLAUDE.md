@@ -78,6 +78,18 @@ Finishing keeps the item's segments — they carry the timestamps the calendar
 and analysis need — and the log entry stores identity only, with its duration
 derived from those segments at render time.
 
+**Finishing is reversible.** A green play triangle on each log row puts the
+task back on the unfinished list, reusing its original `itemId` so the segments
+— and so the banked time — come back with it. Only the log entry and its
+calendar placement are undone. The restored row goes to the *top* of the list,
+because that list scrolls and a row restored out of sight is a button that
+appears to have done nothing.
+
+Resuming selects the restored task **only when nothing is running**. Selecting
+banks the open run and switches away from it, so a resume during a live run
+would quietly stop timing the thing the user is actually working on. The rule
+is one line: resuming picks the task up unless you are timing something else.
+
 A manually added completed entry gets a **synthetic segment** ending at the
 moment it was added, rather than a duration field of its own, so every entry's
 duration derives the same way. Those segments carry `manual: true`, because
@@ -193,7 +205,11 @@ nothing has a date and the group is purely alphabetical. The completed list
 keeps its own most-recently-done-first order.
 
 `completedAt` is the whole done/not-done state — a timestamp or `null` — and
-everything stays in **one list**. Two lists would mean keeping them in sync and
+everything stays in **one list**. Reopening a completed assignment is therefore
+just clearing it: the same green play triangle the log rows use, and progress,
+notes and subtasks are untouched because none of them were ever the state that
+said "done". The row sorts straight back into its type group and the reminders
+pick it up again. Two lists would mean keeping them in sync and
 counting across both; one list makes "how many exams are still open" a filter.
 Completing is offered only on open rows; deleting works in either state.
 Completed rows sort most-recently-done first.
