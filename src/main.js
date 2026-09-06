@@ -67,6 +67,12 @@ const analyzeButton = document.querySelector('[data-action="analyze"]');
 const analyzeDateRegion = document.querySelector('[data-region="analyze-date"]');
 const analysisStatusRegion = document.querySelector('[data-region="analysis-status"]');
 const analysisRegion = document.querySelector('[data-region="analysis"]');
+
+// The analysis panel is parked: its markup is out of index.html, so every
+// lookup above is null. The model, the renderer and the server endpoint all
+// stay — this flag is the single switch, and putting the markup back turns the
+// feature on again with no other change.
+const analysisUI = analysisRegion !== null;
 const assignmentForm = document.querySelector('[data-form="assignment"]');
 const assignmentHint = document.querySelector('[data-region="assignment-hint"]');
 const assignmentsRegion = document.querySelector('[data-region="assignments"]');
@@ -175,8 +181,13 @@ function resetTasks() {
   state.runningSince = fresh.runningSince;
   state.placements = fresh.placements;
   state.calendarShown = fresh.calendarShown;
-  state.goals = fresh.goals;
-  state.analysis = fresh.analysis;
+
+  // Goals and the last analysis are left alone while the panel is parked:
+  // erasing what the user cannot see, and cannot get back, is not a reset.
+  if (analysisUI) {
+    state.goals = fresh.goals;
+    state.analysis = fresh.analysis;
+  }
 
   analysisPending = false;
   analysisError = null;
@@ -772,6 +783,8 @@ function analysisSection(section) {
 }
 
 function renderAnalysis() {
+  if (!analysisUI) return;
+
   renderGoals();
 
   analyzeButton.disabled = analysisPending;
@@ -1249,40 +1262,43 @@ timelineGrid.addEventListener('drop', (event) => {
   render();
 });
 
-goalForm.addEventListener('submit', (event) => {
-  event.preventDefault();
+if (analysisUI) {
+  goalForm.addEventListener('submit', (event) => {
+    event.preventDefault();
 
-  const text = goalForm.elements.text.value.trim();
-  if (text === '') {
-    goalHint.textContent = 'Describe the goal first.';
+    const text = goalForm.elements.text.value.trim();
+    if (text === '') {
+      goalHint.textContent = 'Describe the goal first.';
+      goalForm.elements.text.focus();
+      return;
+    }
+
+    addGoal(text);
+    goalForm.reset();
+    goalHint.textContent = '';
+    render();
     goalForm.elements.text.focus();
-    return;
-  }
+  });
 
-  addGoal(text);
-  goalForm.reset();
-  goalHint.textContent = '';
-  render();
-  goalForm.elements.text.focus();
-});
+  goalForm.addEventListener('input', () => {
+    goalHint.textContent = '';
+  });
 
-goalForm.addEventListener('input', () => {
-  goalHint.textContent = '';
-});
+  goalsRegion.addEventListener('click', (event) => {
+    const goalId = event.target.closest('[data-goal-id]')?.dataset.goalId;
+    if (!goalId) return;
 
-goalsRegion.addEventListener('click', (event) => {
-  const goalId = event.target.closest('[data-goal-id]')?.dataset.goalId;
-  if (!goalId) return;
+    // Deleting a goal only changes what the next analysis is told; recorded
+    // activity is untouched.
+    deleteGoal(goalId);
+    render();
+  });
 
-  // Deleting a goal only changes what the next analysis is told; recorded
-  // activity is untouched.
-  deleteGoal(goalId);
-  render();
-});
+  analyzeButton.addEventListener('click', () => {
+    runAnalysis();
+  });
+}
 
-analyzeButton.addEventListener('click', () => {
-  runAnalysis();
-});
 
 assignmentForm.addEventListener('change', (event) => {
   if (event.target.name === 'kind') renderAssignmentForm();

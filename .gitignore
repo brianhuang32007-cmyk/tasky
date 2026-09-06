@@ -3,3 +3,6 @@
 
 # Generated snapshot for review — rebuild with tools/build_preview.py
 preview.html
+
+# Local Python env for the analysis server; never belongs in a public repo.
+.venv/

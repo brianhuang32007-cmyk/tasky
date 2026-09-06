@@ -509,6 +509,26 @@ does not become a rewrite.
 
 ### Analysis
 
+> **Parked as of 6 Sep 2026 — removed from the page, not from the codebase.**
+> Only the markup came out of `index.html`; everything below still describes
+> what is in the repo and still works.
+>
+> **To bring it back:** restore the `<section class="panel"
+> aria-labelledby="ai-heading">` block into `index.html` (it is in git — see the
+> commit that parked it, and the comment left where it stood). `main.js` derives
+> `analysisUI` from whether `[data-region="analysis"]` is in the document, so the
+> renderer and the goal/analyze event wiring switch back on with no other edit.
+>
+> **Nothing was deleted.** `state.goals` and `state.analysis` stay in the schema
+> and stay in every save. While the panel is parked, `resetTasks()` deliberately
+> leaves both alone — erasing what the user can neither see nor recover is not a
+> reset — and the reset warning no longer claims to clear them. `serve.py`, the
+> system prompt, `/api/analyze` and the fingerprint logic are all untouched.
+>
+> It was parked because it needs an API key to do anything, and the key belongs
+> in the environment of whoever runs the server, never in this public repo.
+
+
 `goals` is a plain list of free text, stored apart from activity. A goal is
 context for the analysis and nothing else — it never changes a task, a timer,
 or a calendar block, and deleting one leaves recorded activity untouched.
