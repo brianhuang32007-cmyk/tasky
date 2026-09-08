@@ -2287,8 +2287,18 @@ body {
   font-weight: 600;
 }
 
+.tag-row-time {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
 .tag-row-count {
   flex: none;
+  min-width: 62px;
+  text-align: right;
   font-size: 12px;
   color: var(--muted);
 }

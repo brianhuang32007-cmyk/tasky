@@ -472,6 +472,24 @@ function deleteTag(tagId) {
 
 const tagById = (tagId) => state.tags.find((tag) => tag.id === tagId) ?? null;
 
+/**
+ * Time spent under one tag, across everything wearing it — unfinished items as
+ * well as completed ones, matching the item count beside it.
+ *
+ * Banked time, like the row labels in the unfinished list, so the figure is the
+ * sum of durations the user can already see rather than a fourth clock ticking
+ * out of step with them. An item cannot be in `items` and `log` at once, so
+ * nothing is counted twice.
+ */
+function tagTotalMs(tagId) {
+  let total = 0;
+
+  for (const item of state.items) if (item.tagId === tagId) total += bankedMs(item.id);
+  for (const entry of state.log) if (entry.tagId === tagId) total += bankedMs(entry.itemId);
+
+  return total;
+}
+
 function setItemTag(id, tagId) {
   const item = state.items.find((i) => i.id === id);
   if (item) item.tagId = tagId || null;
@@ -772,6 +790,10 @@ function tagRow(tag) {
   used.className = 'tag-row-count';
   used.textContent = count === 1 ? '1 item' : `${count} items`;
 
+  const spent = document.createElement('span');
+  spent.className = 'tag-row-time';
+  spent.textContent = formatHuman(tagTotalMs(tag.id));
+
   const remove = document.createElement('button');
   remove.type = 'button';
   remove.className = 'item-delete';
@@ -779,7 +801,7 @@ function tagRow(tag) {
   remove.setAttribute('aria-label', `Delete tag ${tag.name}`);
   remove.append(deleteIcon());
 
-  li.append(name, used, remove);
+  li.append(name, spent, used, remove);
   return li;
 }
 

@@ -152,8 +152,13 @@ function groupByTag(entries) {
 }
 
 /**
- * A group's heading. The tag's own capitalisation is kept — it is the user's
- * word, and shouting it adds nothing that the colour and weight do not.
+ * A group's heading, with the time under that tag closing the line.
+ *
+ * The tag's own capitalisation is kept — it is the user's word, and shouting it
+ * adds nothing that the colour and weight do not. The subtotal is the sum of
+ * the rows beneath it, so a reader can check it against the page; a continued
+ * group repeats the whole group's figure, since the heading names the group and
+ * not the fragment.
  */
 function drawGroupHeading(p, group, y, continued = false) {
   const colour = group.tag ? group.tag.hex : MUTED;
@@ -162,6 +167,9 @@ function drawGroupHeading(p, group, y, continued = false) {
 
   p.fill(colour).ellipse(LEFT + 4, y + 3, 4, 4);
   p.fill(colour).text(label, LEFT + 14, y, 9.5, 'bold', 0.6);
+
+  const total = group.rows.reduce((sum, row) => sum + row.ms, 0);
+  rightAlign(p, formatHuman(total), RIGHT, y, 9.5, 'bold', colour);
 }
 
 /** One of the two closing figures. */

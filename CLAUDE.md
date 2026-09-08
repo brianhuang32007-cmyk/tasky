@@ -505,8 +505,21 @@ than overriding the ring, so the pointer never hides what the row is.
 The row publishes `--tag`; the ring and the pill inside both read it. One
 property, set in one place, so anything added to a row later is themed already.
 
+Each tag row also carries **the time spent under it**, from `tagTotalMs()`.
+That counts *everything* wearing the tag — unfinished items as well as
+completed ones — because the item count beside it does, and because time spent
+on something half-finished was still spent. It sums **banked** time, like the
+`[2 hrs 3 min]` labels in the unfinished list, so the figure is the total of
+durations the user can already see rather than a fourth clock ticking out of
+step with them.
+
 The printed summary groups under the same tags — see below — because a report
-sorted by an invisible key looks arbitrary.
+sorted by an invisible key looks arbitrary. **Its per-tag subtotals will differ
+from the panel's** whenever a tag has unfinished work: the report covers
+completed items only, so its subtotal is the sum of the rows printed beneath it
+and can be checked against the page. That is two different questions answered
+correctly, not a discrepancy — the panel asks "how much time has this tag
+taken", the report asks "what did I finish today".
 
 ## The printed daily summary
 
@@ -519,6 +532,10 @@ what was done, and half-timed work would inflate every figure under it.
 appear, with untagged closing the report — the same grouping as the log on
 screen, so the two never disagree. Within a group the log's own
 most-recent-first order is kept.
+
+Each heading closes with **that group's total time**, right-aligned under the
+TIME column so it reads against the rows it sums. A continued group repeats the
+whole group's figure, since the heading names the group and not the fragment.
 
 The report groups the entries itself rather than trusting them to arrive
 grouped, so it is still correct if it is ever handed a raw log. A heading only
