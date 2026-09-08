@@ -453,6 +453,46 @@ so arming one never arms the other. Each reset assigns from a fresh
 `emptyState()` rather than a literal, so a new field is cleared by whichever
 page owns it without the reset needing to be updated.
 
+## The printed daily summary
+
+**Print daily summary**, at the foot of the Tasks page, downloads a PDF: the
+date, the mascot, every completed item with its duration, and the two totals.
+Unfinished work is deliberately absent — a summary of the day is a record of
+what was done, and half-timed work would inflate every figure under it.
+
+Rows keep the log's own most-recent-first order, so the report and the screen
+above it never disagree.
+
+### Writing the PDF by hand
+
+`src/pdf.js` is a small PDF writer — pages, the two base-14 Helveticas, text,
+and filled or stroked paths. It exists for the same reason the `.ics` builder
+does: the format is small and well specified, and a library would be the first
+build step this project has ever needed.
+
+Three things in it are load-bearing.
+
+**The file must stay 7-bit.** The xref table is byte offsets into the file, and
+they are computed from JavaScript string lengths — which equal byte counts only
+for ASCII. Every string literal is escaped to octal above 126, and `toBlob()`
+throws rather than emit a file whose offsets would silently be wrong.
+
+**Text width has to be known.** Right-aligning a duration means measuring it,
+and nothing in the browser can measure PDF Helvetica, so Adobe's metrics for
+both faces are tabled in the module. They are also what `ellipsize()` uses to
+shorten a long task name to its column.
+
+**PDF's y axis points up**, the opposite of everything else here. `drawSpace()`
+installs a flipping transform so the mascot can be transcribed out of its SVG
+`viewBox` unchanged — which is why the tiger in the report is recognisably the
+tiger in the header, smile included, and stays sharp at any zoom because it is
+real vector art rather than a rasterised logo.
+
+`src/report.js` holds the layout and knows nothing about app state: the caller
+hands it finished rows and totals. Rows flow onto as many pages as they need —
+continuation pages get a line of context instead of the whole crown — and the
+totals always close the last page rather than hanging off an edge.
+
 ## Layout contract
 
 ```

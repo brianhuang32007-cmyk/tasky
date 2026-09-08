@@ -8,6 +8,7 @@
 // day survive a closed tab without each call site having to remember.
 
 import { emptyState, load, save, subscribe } from './storage.js';
+import { buildDailySummary, dailySummaryFilename } from './report.js';
 import {
   formatClock,
   formatCompact,
@@ -1642,6 +1643,15 @@ for (const zone of resetZones) {
 // Checkpoints, not state changes: they keep savedAt close to the truth so a
 // run interrupted by a closed tab is credited accurately on the next load.
 // Switching tabs must not pause a running timer, so neither of these banks.
+const printNote = document.querySelector('[data-region="print-note"]');
+
+document.querySelector('[data-action="print-summary"]').addEventListener('click', () => {
+  const count = printDailySummary();
+  printNote.textContent = count === 0
+    ? 'Downloaded — nothing completed yet today, so the report is empty.'
+    : `Downloaded — ${count} completed item${count === 1 ? '' : 's'}.`;
+});
+
 addEventListener('pagehide', () => persist());
 addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') persist();
@@ -2523,19 +2533,48 @@ function googleCalendarUrl(entry, plan) {
 const icsFilename = (name) =>
   `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'assignment'}.ics`;
 
-function downloadIcs(entry, plan) {
-  const blob = new Blob([buildIcs(entry, plan)], { type: 'text/calendar;charset=utf-8' });
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement('a');
   link.href = url;
-  link.download = icsFilename(entry.name);
+  link.download = filename;
   document.body.append(link);
   link.click();
   link.remove();
 
   // Revoking in the same tick can cancel the download in some browsers.
   setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function downloadIcs(entry, plan) {
+  downloadBlob(
+    new Blob([buildIcs(entry, plan)], { type: 'text/calendar;charset=utf-8' }),
+    icsFilename(entry.name),
+  );
+}
+
+/**
+ * The day's completed work, in the order the log shows it, as a PDF.
+ *
+ * Unfinished items are left out on purpose: a summary of the day is a record of
+ * what was done, and half-timed work would inflate every figure under it.
+ */
+function printDailySummary() {
+  const now = new Date();
+
+  const blob = buildDailySummary({
+    now,
+    entries: state.log.map((entry) => ({
+      name: entry.name,
+      kind: entry.kind,
+      ms: elapsedMs(entry.itemId),
+    })),
+    totals: { task: totalFor('task'), break: totalFor('break') },
+  });
+
+  downloadBlob(blob, dailySummaryFilename(now));
+  return state.log.length;
 }
 
 // --- pages ----------------------------------------------------------------
