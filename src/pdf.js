@@ -93,11 +93,11 @@ export function textWidth(text, size, weight = 'regular', tracking = 0) {
 }
 
 /** Shortens to fit, with an ellipsis, or returns it untouched if it already does. */
-export function ellipsize(text, maxWidth, size, weight = 'regular') {
-  if (textWidth(text, size, weight) <= maxWidth) return text;
+export function ellipsize(text, maxWidth, size, weight = 'regular', tracking = 0) {
+  if (textWidth(text, size, weight, tracking) <= maxWidth) return text;
 
   let cut = text;
-  while (cut.length > 1 && textWidth(`${cut}…`, size, weight) > maxWidth) {
+  while (cut.length > 1 && textWidth(`${cut}…`, size, weight, tracking) > maxWidth) {
     cut = cut.slice(0, -1);
   }
   return `${cut.trimEnd()}…`;

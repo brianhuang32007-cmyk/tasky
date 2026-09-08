@@ -9,6 +9,7 @@
 
 import { emptyState, load, save, subscribe } from './storage.js';
 import { buildDailySummary, dailySummaryFilename } from './report.js';
+import { TAG_COLOURS, TAG_NAME_LIMIT, colourHex } from './tags.js';
 import {
   formatClock,
   formatCompact,
@@ -47,6 +48,10 @@ const nameInput = form.elements.name;
 const hint = document.querySelector('[data-region="capture-hint"]');
 const itemsRegion = document.querySelector('[data-region="items"]');
 const statusRegion = document.querySelector('[data-region="status"]');
+const tagForm = document.querySelector('[data-form="tag"]');
+const tagHint = document.querySelector('[data-region="tag-hint"]');
+const tagsRegion = document.querySelector('[data-region="tags"]');
+const swatchesRegion = document.querySelector('[data-region="swatches"]');
 const deviceClockRegion = document.querySelector('[data-region="device-clock"]');
 const timerItemRegion = document.querySelector('[data-region="timer-item"]');
 const digitalRegion = document.querySelector('[data-region="digital"]');
@@ -284,6 +289,7 @@ function resetTasks() {
   state.runningSince = fresh.runningSince;
   state.placements = fresh.placements;
   state.calendarShown = fresh.calendarShown;
+  state.tags = fresh.tags;
 
   // Goals and the last analysis are left alone while the panel is parked:
   // erasing what the user cannot see, and cannot get back, is not a reset.
@@ -388,6 +394,7 @@ function finishItem() {
     itemId: item.id,
     name: item.name,
     kind: item.kind,
+    tagId: item.tagId ?? null,
     finishedAt: Date.now(),
   });
 
@@ -437,12 +444,58 @@ function resumeLogEntry(logId) {
     id: entry.itemId,
     name: entry.name,
     kind: entry.kind,
+    tagId: entry.tagId ?? null,
     createdAt: Date.now(),
   });
 
   // Selecting it would bank the open run and switch away from whatever is
   // being timed, so an active run is left strictly alone.
   if (state.runningSince === null) state.selectedId = entry.itemId;
+}
+
+// --- tags -----------------------------------------------------------------
+
+function addTag(name, color) {
+  state.tags.push({ id: newId(), name: name.slice(0, TAG_NAME_LIMIT), color });
+}
+
+/**
+ * Deleting a tag untags everything wearing it rather than leaving rows
+ * pointing at something that no longer exists — a dangling id would sort as
+ * untagged anyway, but only by accident.
+ */
+function deleteTag(tagId) {
+  state.tags = state.tags.filter((tag) => tag.id !== tagId);
+  for (const item of state.items) if (item.tagId === tagId) item.tagId = null;
+  for (const entry of state.log) if (entry.tagId === tagId) entry.tagId = null;
+}
+
+const tagById = (tagId) => state.tags.find((tag) => tag.id === tagId) ?? null;
+
+function setItemTag(id, tagId) {
+  const item = state.items.find((i) => i.id === id);
+  if (item) item.tagId = tagId || null;
+}
+
+function setLogTag(logId, tagId) {
+  const entry = state.log.find((e) => e.id === logId);
+  if (entry) entry.tagId = tagId || null;
+}
+
+/**
+ * The completed log grouped by tag, in the order the Tags panel lists them,
+ * untagged last. Sorting a copy leaves `state.log` in finish order, which is
+ * the actual record — the grouping is a view of it, and the calendar still
+ * reads the record.
+ *
+ * Array sort is stable, so within a group rows keep their most-recent-first
+ * order for free.
+ */
+function sortedLog() {
+  const order = new Map(state.tags.map((tag, index) => [tag.id, index]));
+  const rank = (entry) => order.get(entry.tagId) ?? Number.MAX_SAFE_INTEGER;
+
+  return [...state.log].sort((a, b) => rank(a) - rank(b));
 }
 
 function deleteLogEntry(logId) {
@@ -503,6 +556,50 @@ function strokeIcon(d) {
 
   svg.append(path);
   return svg;
+}
+
+/**
+ * The per-row tag control: a native select dressed as a coloured pill.
+ *
+ * A select rather than a custom popover because these rows are rebuilt on
+ * every render — a hand-rolled menu would have to survive that, while the
+ * browser's own already does, along with keyboard and screen-reader support.
+ *
+ * Returns an empty fragment when no tags exist yet, so rows stay clean for
+ * anyone not using the feature rather than carrying a control with nothing in
+ * it — and so call sites need no guard, since append() would otherwise write
+ * the string "null" into the row.
+ */
+function tagPicker(tagId, scope, id) {
+  if (state.tags.length === 0) return document.createDocumentFragment();
+
+  const tag = tagById(tagId);
+
+  const wrap = document.createElement('label');
+  wrap.className = tag ? 'tag-pick is-tagged' : 'tag-pick';
+  if (tag) wrap.style.setProperty('--tag', colourHex(tag.color));
+
+  const select = document.createElement('select');
+  select.className = 'tag-select';
+  select.dataset.tagScope = scope;
+  select.dataset.tagTarget = id;
+  select.setAttribute('aria-label', 'Tag');
+
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = 'No tag';
+  select.append(none);
+
+  for (const option of state.tags) {
+    const el = document.createElement('option');
+    el.value = option.id;
+    el.textContent = option.name;
+    select.append(el);
+  }
+
+  select.value = tag ? tag.id : '';
+  wrap.append(select);
+  return wrap;
 }
 
 const deleteIcon = () => strokeIcon(CROSS);
@@ -566,7 +663,7 @@ function itemRow(item) {
   remove.setAttribute('aria-label', `Delete ${item.name}`);
   remove.append(deleteIcon());
 
-  li.append(select, remove);
+  li.append(select, tagPicker(item.tagId, 'item', item.id), remove);
   return li;
 }
 
@@ -618,8 +715,72 @@ function logRow(entry) {
   remove.setAttribute('aria-label', `Delete ${entry.name} from the log`);
   remove.append(deleteIcon());
 
-  li.append(name, badge(entry.kind), duration, done, resumeButton(entry.name), remove);
+  li.append(
+    name, badge(entry.kind), tagPicker(entry.tagId, 'log', entry.id),
+    duration, done, resumeButton(entry.name), remove,
+  );
   return li;
+}
+
+function buildSwatches() {
+  for (const colour of TAG_COLOURS) {
+    const label = document.createElement('label');
+    label.className = 'swatch';
+    label.title = colour.label;
+    label.style.setProperty('--tag', colour.hex);
+
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'color';
+    radio.value = colour.id;
+    radio.checked = colour === TAG_COLOURS[0];
+    radio.setAttribute('aria-label', colour.label);
+
+    label.append(radio, document.createElement('span'));
+    swatchesRegion.append(label);
+  }
+}
+
+function tagRow(tag) {
+  const li = document.createElement('li');
+  li.className = 'tag-row';
+  li.style.setProperty('--tag', colourHex(tag.color));
+
+  const name = document.createElement('span');
+  name.className = 'tag-row-name';
+  name.textContent = tag.name;
+  name.title = tag.name;
+
+  const count = state.items.filter((i) => i.tagId === tag.id).length
+    + state.log.filter((e) => e.tagId === tag.id).length;
+
+  const used = document.createElement('span');
+  used.className = 'tag-row-count';
+  used.textContent = count === 1 ? '1 item' : `${count} items`;
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'item-delete';
+  remove.dataset.tagId = tag.id;
+  remove.setAttribute('aria-label', `Delete tag ${tag.name}`);
+  remove.append(deleteIcon());
+
+  li.append(name, used, remove);
+  return li;
+}
+
+function renderTags() {
+  if (state.tags.length === 0) {
+    tagsRegion.replaceChildren(
+      placeholder('No tags yet — add one to group your completed log.'),
+    );
+    return;
+  }
+
+  const list = document.createElement('ul');
+  list.className = 'tag-list';
+  list.append(...state.tags.map(tagRow));
+  tagsRegion.replaceChildren(list);
 }
 
 function renderLog() {
@@ -628,7 +789,7 @@ function renderLog() {
   } else {
     const list = document.createElement('ul');
     list.className = 'items';
-    list.append(...state.log.map(logRow));
+    list.append(...sortedLog().map(logRow));
     logRegion.replaceChildren(list);
   }
 
@@ -1165,6 +1326,7 @@ function render() {
 
 function repaint() {
   renderItems();
+  renderTags();
   renderTimerItem();
   renderControls();
   renderLog();
@@ -1263,6 +1425,49 @@ itemsRegion.addEventListener('click', (event) => {
     render();
   }
 });
+
+tagForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+
+  const name = tagForm.elements.name.value.trim();
+  if (name === '') {
+    tagHint.textContent = 'Give the tag a name first.';
+    tagForm.elements.name.focus();
+    return;
+  }
+
+  addTag(name, tagForm.elements.color.value);
+  tagForm.elements.name.value = '';
+  tagHint.textContent = '';
+  render();
+  tagForm.elements.name.focus();
+});
+
+tagForm.addEventListener('input', () => {
+  tagHint.textContent = '';
+});
+
+tagsRegion.addEventListener('click', (event) => {
+  const tagId = event.target.closest('[data-tag-id]')?.dataset.tagId;
+  if (!tagId) return;
+
+  deleteTag(tagId);
+  render();
+});
+
+// Both lists carry the same control, so one handler serves both.
+for (const region of [itemsRegion, logRegion]) {
+  region.addEventListener('change', (event) => {
+    const select = event.target.closest('.tag-select');
+    if (!select) return;
+
+    const { tagScope, tagTarget } = select.dataset;
+    if (tagScope === 'item') setItemTag(tagTarget, select.value);
+    else setLogTag(tagTarget, select.value);
+
+    render();
+  });
+}
 
 logRegion.addEventListener('click', (event) => {
   const row = event.target.closest('.log-row');
@@ -2565,11 +2770,15 @@ function printDailySummary() {
 
   const blob = buildDailySummary({
     now,
-    entries: state.log.map((entry) => ({
-      name: entry.name,
-      kind: entry.kind,
-      ms: elapsedMs(entry.itemId),
-    })),
+    entries: sortedLog().map((entry) => {
+      const tag = tagById(entry.tagId);
+      return {
+        name: entry.name,
+        kind: entry.kind,
+        ms: elapsedMs(entry.itemId),
+        tag: tag && { name: tag.name, hex: colourHex(tag.color) },
+      };
+    }),
     totals: { task: totalFor('task'), break: totalFor('break') },
   });
 
@@ -2640,6 +2849,7 @@ startDeviceClock();
 // without either of them reloading.
 subscribe(adoptExternalState);
 
+buildSwatches();
 buildTicks();
 buildMonthOptions();
 buildDayOptions();

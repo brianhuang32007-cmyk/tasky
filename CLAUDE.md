@@ -453,6 +453,45 @@ so arming one never arms the other. Each reset assigns from a fresh
 `emptyState()` rather than a literal, so a new field is cleared by whichever
 page owns it without the reset needing to be updated.
 
+### Tags
+
+A tag is a **colour and a name**, made once in the Tags panel and applied to
+many items — a shared vocabulary rather than free text per row, so deleting or
+recolouring one reaches everything wearing it. Names cap at 25 characters,
+enforced twice like every other name here: `maxlength` stops the typing and a
+slice guards the write.
+
+**The palette lives in `src/tags.js`, not in CSS.** Two very different renderers
+need the same seven colours — the DOM publishes each as a `--tag` custom
+property, and the PDF writer needs it as a number for a content stream. A
+CSS-only palette would have to be duplicated in JavaScript for the report to
+match, so instead no stylesheet rule names a tag colour at all.
+
+**One tag per item.** Finder allows several; sorting by several is ambiguous,
+and the sort is the point of the feature here.
+
+`tagId` sits on the item *and* on the log entry, copied across at finish and
+copied back on resume, exactly as `name` and `kind` already are.
+
+**The completed log groups by tag, untagged last.** Groups follow the order the
+Tags panel lists them, which is creation order — so what the user sees in the
+panel is the order they get in the log. Within a group, array sort's stability
+keeps the existing most-recent-first order for free. `sortedLog()` sorts a
+**copy**: `state.log` stays in finish order, which is the actual record, and the
+calendar still reads that record. **The unfinished list is deliberately not
+sorted** — it is a work surface, and rows moving under the cursor while you pick
+one is worse than any grouping is worth.
+
+The per-row control is a **native `<select>` dressed as a pill**, not a custom
+popover. These rows are rebuilt on every render; a hand-rolled menu would have
+to survive that, while the browser's own already does, with keyboard and
+screen-reader support included. It returns an empty fragment when no tags exist,
+so rows stay clean for anyone not using the feature — and so no call site needs
+a null guard, since `append(null)` would write the string "null" into the row.
+
+The printed summary follows the same grouping and shows each tag, because a
+report sorted by an invisible key looks arbitrary.
+
 ## The printed daily summary
 
 **Print daily summary**, at the foot of the Tasks page, downloads a PDF: the

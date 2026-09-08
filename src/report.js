@@ -24,6 +24,7 @@ const RIGHT = PAGE.width - MARGIN;
 const MIDDLE = PAGE.width / 2;
 
 const ROW_HEIGHT = 26;
+const TAG_COLUMN = 300;    // left edge of the tag pill
 const KIND_COLUMN = 452;   // right edge of the TASK / BREAK column
 const FOOTER_Y = 46;
 const LOWEST_ROW = 132;    // rows stop here; below is footer air
@@ -116,8 +117,16 @@ function drawRow(p, entry, y) {
   p.fill(isBreak ? BREAK_INK : ACCENT).ellipse(LEFT + 3.5, y + 3.5, 3.5, 3.5);
 
   const nameX = LEFT + 16;
-  const nameWidth = KIND_COLUMN - nameX - 46;
+  // The rows are grouped by tag, so the tag has to be visible or the ordering
+  // looks arbitrary.
+  const nameWidth = (entry.tag ? TAG_COLUMN - 10 : KIND_COLUMN - 46) - nameX;
   p.fill(INK).text(ellipsize(entry.name, nameWidth, 11.5), nameX, y, 11.5);
+
+  if (entry.tag) {
+    const label = ellipsize(entry.tag.name, 120, 8.5, 'bold', 0.8);
+    p.fill(entry.tag.hex).ellipse(TAG_COLUMN + 3, y + 3.2, 3, 3);
+    p.fill(entry.tag.hex).text(label, TAG_COLUMN + 11, y, 8.5, 'bold', 0.8);
+  }
 
   rightAlign(p, isBreak ? 'BREAK' : 'TASK', KIND_COLUMN, y, 8, 'bold', MUTED);
   rightAlign(p, formatHuman(entry.ms), RIGHT, y, 11.5, 'regular', INK);

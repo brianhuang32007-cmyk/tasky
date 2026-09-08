@@ -9,9 +9,14 @@ const KEY = 'tasky.state.v1';
 export function emptyState() {
   return {
     version: 1,
-    items: [],      // { id, name, kind: 'task' | 'break', createdAt }
+    items: [],      // { id, name, kind: 'task' | 'break', createdAt, tagId }
     segments: [],   // { id, itemId, startedAt, endedAt }
-    log: [],        // { id, itemId, name, kind, finishedAt }
+    log: [],        // { id, itemId, name, kind, finishedAt, tagId }
+
+    // A shared vocabulary rather than free text per item, so renaming or
+    // recolouring one tag reaches everything wearing it. Their order here is
+    // the order the completed log groups by.
+    tags: [],       // { id, name, color }
     selectedId: null,
     runningSince: null,
 

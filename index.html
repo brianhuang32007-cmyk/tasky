@@ -212,6 +212,34 @@
     </div>
   </section>
 
+  <section class="panel" aria-labelledby="tags-heading">
+    <h2 id="tags-heading" class="panel-title">Tags</h2>
+    <div class="panel-body">
+
+      <form class="tag-form" data-form="tag">
+        <!-- Swatches are built from the palette in src/tags.js, so the colours
+             are defined in exactly one place. -->
+        <div class="swatches" data-region="swatches" role="radiogroup" aria-label="Tag colour"></div>
+
+        <input
+          class="tag-name"
+          type="text"
+          name="name"
+          maxlength="25"
+          placeholder="Tag name"
+          autocomplete="off"
+          aria-label="Tag name">
+
+        <button class="btn-manual" type="submit">Add tag</button>
+      </form>
+
+      <p class="manual-hint" data-region="tag-hint" role="status" aria-live="polite"></p>
+
+      <div data-region="tags"></div>
+
+    </div>
+  </section>
+
   <section class="panel" aria-labelledby="summary-heading">
     <h2 id="summary-heading" class="panel-title">Calendar &amp; daily summary</h2>
     <div class="panel-body" data-region="summary">
@@ -283,7 +311,7 @@
     <button class="btn-reset" type="button" data-action="reset">Reset tracked data</button>
 
     <div class="reset-confirm" data-region="reset-confirm" hidden>
-      <p class="reset-warning">This erases every unfinished item, log entry, and calendar block on this page. It cannot be undone. Your assignments are not affected.</p>
+      <p class="reset-warning">This erases every unfinished item, log entry, calendar block, and tag on this page. It cannot be undone. Your assignments are not affected.</p>
       <div class="reset-actions">
         <button class="btn-reset is-danger" type="button" data-action="reset-confirm">Yes, erase task data</button>
         <button class="btn btn-secondary" type="button" data-action="reset-cancel">Cancel</button>
