@@ -492,7 +492,14 @@ a null guard, since `append(null)` would write the string "null" into the row.
 **A tagged row is ringed in its tag's colour**, in both lists. That is an
 `outline`, not a border: the border already carries hover and selection, and an
 outline sits outside the box without moving anything, while still following the
-row's corner radius. Hover on a tagged row recolours the border to match rather
+row's corner radius.
+
+It is a **hairline at 55% alpha**, and both halves of that matter. Rows sit 8px
+apart, so a 2px ring left only 2px between two adjacent tagged rows and read as
+clutter rather than as two tags; 1px clears by 4px. The softening is declared in
+its own block so the solid colour stands as the fallback where `color-mix` is
+unsupported. The ring only has to say which tag this is — the pill already says
+it at full strength. Hover on a tagged row recolours the border to match rather
 than overriding the ring, so the pointer never hides what the row is.
 
 The row publishes `--tag`; the ring and the pill inside both read it. One

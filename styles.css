@@ -2328,11 +2328,23 @@ body {
 
 /* An outline rather than a border: the border already carries hover and
    selection, and an outline sits outside the box without moving anything. It
-   follows the border-radius, so the ring matches the row's corners. */
+   follows the border-radius, so the ring matches the row's corners.
+
+   Hairline width, because rows sit 8px apart: at 2px the rings of two adjacent
+   tagged rows left only 2px between them and read as clutter rather than as
+   two tags. At 1px they clear each other by 4px. */
 .item.is-tagged,
 .log-row.is-tagged {
-  outline: 2px solid var(--tag);
+  outline: 1px solid var(--tag);
   outline-offset: 1px;
+}
+
+/* Softened in its own block so the solid colour above stands as the fallback
+   wherever color-mix is unsupported. The ring only has to say which tag this
+   is; the pill already says it in full strength. */
+.item.is-tagged,
+.log-row.is-tagged {
+  outline-color: color-mix(in srgb, var(--tag) 55%, transparent);
 }
 
 /* Hover must not wipe out the tag: leave the outline to say what it is and let
