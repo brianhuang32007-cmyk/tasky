@@ -489,8 +489,17 @@ screen-reader support included. It returns an empty fragment when no tags exist,
 so rows stay clean for anyone not using the feature — and so no call site needs
 a null guard, since `append(null)` would write the string "null" into the row.
 
-The printed summary follows the same grouping and shows each tag, because a
-report sorted by an invisible key looks arbitrary.
+**A tagged row is ringed in its tag's colour**, in both lists. That is an
+`outline`, not a border: the border already carries hover and selection, and an
+outline sits outside the box without moving anything, while still following the
+row's corner radius. Hover on a tagged row recolours the border to match rather
+than overriding the ring, so the pointer never hides what the row is.
+
+The row publishes `--tag`; the ring and the pill inside both read it. One
+property, set in one place, so anything added to a row later is themed already.
+
+The printed summary groups under the same tags — see below — because a report
+sorted by an invisible key looks arbitrary.
 
 ## The printed daily summary
 
@@ -499,8 +508,17 @@ date, the mascot, every completed item with its duration, and the two totals.
 Unfinished work is deliberately absent — a summary of the day is a record of
 what was done, and half-timed work would inflate every figure under it.
 
-Rows keep the log's own most-recent-first order, so the report and the screen
-above it never disagree.
+**Rows are gathered under a heading per tag**, in the order the tags first
+appear, with untagged closing the report — the same grouping as the log on
+screen, so the two never disagree. Within a group the log's own
+most-recent-first order is kept.
+
+The report groups the entries itself rather than trusting them to arrive
+grouped, so it is still correct if it is ever handed a raw log. A heading only
+starts on a page if a row can follow it, and a group that spans a page break
+repeats its heading marked `(cont.)`. The tag's own capitalisation is kept —
+it is the user's word, and shouting it adds nothing the colour and weight do
+not already say.
 
 ### Writing the PDF by hand
 

@@ -576,8 +576,7 @@ function tagPicker(tagId, scope, id) {
   const tag = tagById(tagId);
 
   const wrap = document.createElement('label');
-  wrap.className = tag ? 'tag-pick is-tagged' : 'tag-pick';
-  if (tag) wrap.style.setProperty('--tag', colourHex(tag.color));
+  wrap.className = 'tag-pick';
 
   const select = document.createElement('select');
   select.className = 'tag-select';
@@ -600,6 +599,19 @@ function tagPicker(tagId, scope, id) {
   select.value = tag ? tag.id : '';
   wrap.append(select);
   return wrap;
+}
+
+/**
+ * Publishes a row's tag colour as --tag and flags it as tagged, so the outline
+ * and the pill inside both read one property set in one place. A row with no
+ * tag publishes nothing and falls back to the ordinary border.
+ */
+function applyTag(li, tagId) {
+  const tag = tagById(tagId);
+  if (!tag) return;
+
+  li.classList.add('is-tagged');
+  li.style.setProperty('--tag', colourHex(tag.color));
 }
 
 const deleteIcon = () => strokeIcon(CROSS);
@@ -663,6 +675,7 @@ function itemRow(item) {
   remove.setAttribute('aria-label', `Delete ${item.name}`);
   remove.append(deleteIcon());
 
+  applyTag(li, item.tagId);
   li.append(select, tagPicker(item.tagId, 'item', item.id), remove);
   return li;
 }
@@ -715,6 +728,7 @@ function logRow(entry) {
   remove.setAttribute('aria-label', `Delete ${entry.name} from the log`);
   remove.append(deleteIcon());
 
+  applyTag(li, entry.tagId);
   li.append(
     name, badge(entry.kind), tagPicker(entry.tagId, 'log', entry.id),
     duration, done, resumeButton(entry.name), remove,
@@ -2776,7 +2790,7 @@ function printDailySummary() {
         name: entry.name,
         kind: entry.kind,
         ms: elapsedMs(entry.itemId),
-        tag: tag && { name: tag.name, hex: colourHex(tag.color) },
+        tag: tag && { id: tag.id, name: tag.name, hex: colourHex(tag.color) },
       };
     }),
     totals: { task: totalFor('task'), break: totalFor('break') },

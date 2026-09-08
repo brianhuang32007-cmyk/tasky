@@ -2312,9 +2312,9 @@ body {
   cursor: pointer;
 }
 
-/* Solid once it carries a tag, so a tagged row reads at a glance and an
+/* Solid once the row carries a tag, so a tagged row reads at a glance and an
    untagged one stays quiet. */
-.tag-pick.is-tagged .tag-select {
+.is-tagged .tag-select {
   border: 1px solid var(--tag);
   color: var(--tag);
   font-weight: 600;
@@ -2324,3 +2324,17 @@ body {
   outline: 2px solid var(--tag, var(--accent));
   outline-offset: 1px;
 }
+
+
+/* An outline rather than a border: the border already carries hover and
+   selection, and an outline sits outside the box without moving anything. It
+   follows the border-radius, so the ring matches the row's corners. */
+.item.is-tagged,
+.log-row.is-tagged {
+  outline: 2px solid var(--tag);
+  outline-offset: 1px;
+}
+
+/* Hover must not wipe out the tag: leave the outline to say what it is and let
+   the border alone answer the pointer. */
+.item.is-tagged:hover { border-color: var(--tag); }

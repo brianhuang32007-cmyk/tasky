@@ -24,8 +24,9 @@ const RIGHT = PAGE.width - MARGIN;
 const MIDDLE = PAGE.width / 2;
 
 const ROW_HEIGHT = 26;
-const TAG_COLUMN = 300;    // left edge of the tag pill
 const KIND_COLUMN = 452;   // right edge of the TASK / BREAK column
+const HEADING_DROP = 22;   // baseline-to-baseline, group heading to first row
+const GROUP_GAP = 12;      // air between one group and the next heading
 const FOOTER_Y = 46;
 const LOWEST_ROW = 132;    // rows stop here; below is footer air
 
@@ -114,22 +115,53 @@ function drawRow(p, entry, y) {
 
   // A dot rather than a filled badge: at this size a badge would need padding
   // the row cannot spare, and the colour alone carries the same distinction.
-  p.fill(isBreak ? BREAK_INK : ACCENT).ellipse(LEFT + 3.5, y + 3.5, 3.5, 3.5);
+  p.fill(isBreak ? BREAK_INK : ACCENT).ellipse(LEFT + 9.5, y + 3.5, 3.5, 3.5);
 
-  const nameX = LEFT + 16;
-  // The rows are grouped by tag, so the tag has to be visible or the ordering
-  // looks arbitrary.
-  const nameWidth = (entry.tag ? TAG_COLUMN - 10 : KIND_COLUMN - 46) - nameX;
-  p.fill(INK).text(ellipsize(entry.name, nameWidth, 11.5), nameX, y, 11.5);
-
-  if (entry.tag) {
-    const label = ellipsize(entry.tag.name, 120, 8.5, 'bold', 0.8);
-    p.fill(entry.tag.hex).ellipse(TAG_COLUMN + 3, y + 3.2, 3, 3);
-    p.fill(entry.tag.hex).text(label, TAG_COLUMN + 11, y, 8.5, 'bold', 0.8);
-  }
+  // Indented under its group heading, and given the whole column: the heading
+  // above already says which tag this is.
+  const nameX = LEFT + 22;
+  p.fill(INK).text(ellipsize(entry.name, KIND_COLUMN - 46 - nameX, 11.5), nameX, y, 11.5);
 
   rightAlign(p, isBreak ? 'BREAK' : 'TASK', KIND_COLUMN, y, 8, 'bold', MUTED);
   rightAlign(p, formatHuman(entry.ms), RIGHT, y, 11.5, 'regular', INK);
+}
+
+/**
+ * Rows gathered under their tag, in the order the tags first appear — which,
+ * given the caller hands them over already grouped, is the order the Tags panel
+ * lists. Grouping here rather than trusting that order means the report is
+ * still correct if it is ever handed a raw log.
+ *
+ * Untagged always closes the report. The sort is stable, so the tagged groups
+ * keep the order they were found in.
+ */
+function groupByTag(entries) {
+  const groups = [];
+  const seen = new Map();
+
+  for (const entry of entries) {
+    const key = entry.tag ? entry.tag.id : null;
+    if (!seen.has(key)) {
+      seen.set(key, groups.length);
+      groups.push({ tag: entry.tag ?? null, rows: [] });
+    }
+    groups[seen.get(key)].rows.push(entry);
+  }
+
+  return groups.sort((a, b) => (a.tag ? 0 : 1) - (b.tag ? 0 : 1));
+}
+
+/**
+ * A group's heading. The tag's own capitalisation is kept — it is the user's
+ * word, and shouting it adds nothing that the colour and weight do not.
+ */
+function drawGroupHeading(p, group, y, continued = false) {
+  const colour = group.tag ? group.tag.hex : MUTED;
+  const name = group.tag ? group.tag.name : 'Untagged';
+  const label = ellipsize(continued ? `${name} (cont.)` : name, 300, 9.5, 'bold', 0.6);
+
+  p.fill(colour).ellipse(LEFT + 4, y + 3, 4, 4);
+  p.fill(colour).text(label, LEFT + 14, y, 9.5, 'bold', 0.6);
 }
 
 /** One of the two closing figures. */
@@ -178,11 +210,30 @@ export function buildDailySummary({ entries, totals, now = new Date() }) {
     y -= 44;
   }
 
-  for (const entry of entries) {
-    if (y < LOWEST_ROW) newPage();
-    drawRow(page, entry, y);
-    y -= ROW_HEIGHT;
+  const groups = groupByTag(entries);
+
+  for (const group of groups) {
+    // A heading alone at the foot of a page is worse than a slightly short one,
+    // so it only starts here if a row can follow it.
+    if (y - HEADING_DROP - ROW_HEIGHT < LOWEST_ROW) newPage();
+
+    drawGroupHeading(page, group, y);
+    y -= HEADING_DROP;
+
+    for (const entry of group.rows) {
+      if (y < LOWEST_ROW) {
+        newPage();
+        drawGroupHeading(page, group, y, true);
+        y -= HEADING_DROP;
+      }
+      drawRow(page, entry, y);
+      y -= ROW_HEIGHT;
+    }
+
+    y -= GROUP_GAP;
   }
+
+  if (groups.length > 0) y += GROUP_GAP; // the last group needs no trailing air
 
   // The totals need room beneath the closing rule; a new page beats a box
   // hanging off the bottom edge.
