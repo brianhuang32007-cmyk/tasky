@@ -107,6 +107,8 @@ const completeButton = document.querySelector('[data-action="complete-assignment
 const calRegion = document.querySelector('[data-region="cal"]');
 const calHint = document.querySelector('[data-region="cal-hint"]');
 const calMessage = document.querySelector('[data-region="cal-msg"]');
+const calChoice = document.querySelector('[data-region="cal-choice"]');
+const calGoogleLink = document.querySelector('[data-region="cal-gcal"]');
 const modePanels = {
   manual: document.querySelector('[data-region="mode-manual"]'),
   weighted: document.querySelector('[data-region="mode-weighted"]'),
@@ -1485,13 +1487,25 @@ document.querySelector('[data-action="add-to-calendar"]').addEventListener('clic
 
   const plan = calendarPlan(progressEntry);
   if (!plan.ok) {
+    calChoiceFor = null;
     calMessage.textContent = 'Error: Cannot Detect Time/Date';
     calMessage.hidden = false;
+    renderProgress();
     return;
   }
 
   hideCalMessage();
-  downloadIcs(progressEntry, plan);
+  calChoiceFor = progressEntry.id;
+  renderProgress();
+});
+
+document.querySelector('[data-action="cal-file"]').addEventListener('click', () => {
+  if (!progressEntry) return;
+
+  // Re-planned rather than remembered: the notes may have changed the length
+  // between opening the choice and picking one.
+  const plan = calendarPlan(progressEntry);
+  if (plan.ok) downloadIcs(progressEntry, plan);
 });
 
 completeButton.addEventListener('click', () => {
@@ -2122,6 +2136,8 @@ function renderProgress() {
  * error on click is how the user finds out a time is what is missing, which is
  * more discoverable than a control that is disabled for unstated reasons.
  */
+let calChoiceFor = null;
+
 function renderCalendarExport(entry) {
   const dated = entry.kind === 'assignment' || entry.kind === 'event';
   calRegion.hidden = !dated;
@@ -2135,6 +2151,12 @@ function renderCalendarExport(entry) {
   // Editing the notes can fix the reason, so a stale complaint is cleared as
   // soon as the export would succeed.
   if (plan.ok) hideCalMessage();
+
+  const showChoice = plan.ok && calChoiceFor === entry.id;
+  calChoice.hidden = !showChoice;
+  // Rebuilt on every render, so editing the notes updates the link in place
+  // rather than leaving a stale one to be clicked.
+  if (showChoice) calGoogleLink.href = googleCalendarUrl(entry, plan);
 }
 
 /** Exactly what will land in the calendar, and where each half came from. */
@@ -2368,6 +2390,30 @@ function buildIcs(entry, plan) {
 
   // CRLF throughout, per the spec, and a trailing one to close the last line.
   return `${lines.map(icsFold).join('\r\n')}\r\n`;
+}
+
+/**
+ * Google's prefilled-event URL. Same wall-clock stamps the .ics uses, with the
+ * browser's zone named explicitly in `ctz` — without it Google reads the times
+ * in whatever zone the target calendar is set to, which is not necessarily the
+ * one the user was looking at when they typed "9am".
+ */
+function googleCalendarUrl(entry, plan) {
+  const end = new Date(plan.start.getTime() + plan.minutes * 60_000);
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: entry.name,
+    dates: `${icsLocal(plan.start)}/${icsLocal(end)}`,
+  });
+
+  const note = entry.progress?.note?.trim();
+  if (note) params.set('details', note);
+
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (zone) params.set('ctz', zone);
+
+  return `https://calendar.google.com/calendar/render?${params}`;
 }
 
 const icsFilename = (name) =>

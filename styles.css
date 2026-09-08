@@ -2128,6 +2128,37 @@ body {
   font-size: 12px;
 }
 
+.cal-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Secondary to the button that opened them: filled but quiet, so the pair
+   reads as "pick one" rather than as two more primary actions. */
+.btn-cal-option {
+  flex: none;
+  padding: 6px 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--type-soft, var(--accent-soft));
+  color: var(--type-ink, var(--accent-strong));
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn-cal-option:hover { border-color: var(--type, var(--accent)); }
+
+.btn-cal-option:focus-visible {
+  outline: 2px solid var(--type, var(--accent));
+  outline-offset: 2px;
+}
+
 .cal-msg {
   margin: 8px 0 0;
   color: var(--alert);

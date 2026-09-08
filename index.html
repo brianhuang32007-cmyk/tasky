@@ -439,6 +439,18 @@
             </button>
             <span class="cal-hint" data-region="cal-hint"></span>
           </div>
+          <!-- Revealed once the export is known to be possible, so the two
+               ways out are only ever offered when both would work. -->
+          <div class="cal-choice" data-region="cal-choice" hidden>
+            <button class="btn-cal-option" type="button" data-action="cal-file">
+              Download .ics file
+            </button>
+            <a class="btn-cal-option" data-region="cal-gcal"
+               target="_blank" rel="noopener noreferrer">
+              Add to Google Calendar
+            </a>
+          </div>
+
           <p class="cal-msg" data-region="cal-msg" role="status" hidden></p>
         </div>
 

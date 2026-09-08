@@ -303,9 +303,23 @@ progress just edited.
 
 ### Add to calendar
 
-The progress page offers **Add to Calendar** on the two dated kinds, which
-downloads a `.ics` the user imports into Google Calendar. Other never offers
-it: without a date there is no event to export.
+The progress page offers **Add to Calendar** on the two dated kinds. Clicking
+it does not export anything — it reveals two ways out: **Download .ics file**
+and **Add to Google Calendar**. Other never offers any of it: without a date
+there is no event to export.
+
+The choice is revealed only once the export is known to be possible, so the two
+routes are never offered when neither would work. Which assignment has it open
+is held as an id rather than a boolean, so navigating to another one closes it
+without anyone having to remember to.
+
+The Google route is a prefilled `calendar.google.com/render?action=TEMPLATE`
+link carrying the same title, wall-clock stamps and notes the `.ics` carries,
+plus **`ctz` naming the browser's timezone** — without it Google reads the times
+in whatever zone the target calendar is set to, which is not necessarily the one
+the user was looking at when they typed "9am". Its `href` is rebuilt on every
+render, so editing the notes updates the link in place rather than leaving a
+stale one to be clicked. The file route re-plans on click for the same reason.
 
 The button is shown whether or not the export would succeed, and the failure is
 reported on click. A control disabled for unstated reasons teaches the user
