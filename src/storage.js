@@ -51,6 +51,18 @@ function withDefaults(stored) {
   return { ...emptyState(), ...stored };
 }
 
+/** A stored string back into state, or null if there is nothing usable in it. */
+function parse(raw) {
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && parsed.version === 1 ? withDefaults(parsed) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function load() {
   let raw;
   try {
@@ -59,15 +71,25 @@ export function load() {
     // Private browsing or storage disabled: run in memory for this session.
     return emptyState();
   }
-  if (!raw) return emptyState();
+  // Missing or corrupt: start clean rather than failing to boot.
+  return parse(raw) ?? emptyState();
+}
 
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && parsed.version === 1 ? withDefaults(parsed) : emptyState();
-  } catch {
-    // Corrupt entry: start clean rather than failing to boot.
-    return emptyState();
-  }
+/**
+ * Calls back with the new state whenever another tab writes.
+ *
+ * The storage event fires only in documents that did not make the change, so a
+ * tab never hears its own writes and there is no echo to filter out. A null
+ * newValue means the key was removed rather than rewritten — nothing in the app
+ * does that, and adopting it would wipe a live tab, so it is ignored.
+ */
+export function subscribe(onChange) {
+  addEventListener('storage', (event) => {
+    if (event.key !== KEY) return;
+
+    const next = parse(event.newValue);
+    if (next) onChange(next);
+  });
 }
 
 export function save(state) {

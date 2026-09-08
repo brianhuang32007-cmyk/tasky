@@ -140,6 +140,39 @@ boots clean instead of failing to start.
 **Reset tracked data** at the foot of the page wipes everything. It is two-step
 rather than a modal — the project has no modals — because it cannot be undone.
 
+### Cross-tab sync
+
+Every tab on the same origin shares one `localStorage` key, so two open tabs
+used to drift apart until one was reloaded. `storage.js` now exposes
+`subscribe()`, and `main.js` adopts whatever another tab writes.
+
+The `storage` event fires only in documents that did **not** make the change, so
+a tab never hears its own writes and there is no echo to filter out. Measured:
+zero writes while idle, exactly one write per edit, and none written back by the
+receiving tab.
+
+Two rules make the adoption safe.
+
+**It repaints without persisting.** `render()` is split into `persist()` plus
+`repaint()`, and adoption calls only the latter. Writing back would fire the
+same event in the tab that just wrote, and the two would volley forever.
+
+**It does not reconcile.** `reconcileOpenRun()` exists for a tab that came back
+from the dead and must not claim time it cannot vouch for. A run arriving from a
+live sibling is the opposite case — it is still going, and closing it here would
+stop a timer the user is watching in the other tab. So a running timer shows as
+running in every tab, each animating off the same `runningSince`, and pausing in
+one banks exactly one segment. Reconciliation still runs on a genuine load, and
+still credits only up to `savedAt`.
+
+While adopting, `setValue()` leaves a **focused** field alone, so a note being
+typed in one tab is not overwritten by an unrelated write in another. The guard
+is scoped to adoption: a local render still writes through, or a clamped value
+could never correct the input that produced it.
+
+Last write wins, which is right for one person's own tabs. Two tabs editing the
+same field at once will still resolve to whichever saved last.
+
 ### Calendar
 
 `placements` maps a **log entry id to a start minute of the day**, and that is

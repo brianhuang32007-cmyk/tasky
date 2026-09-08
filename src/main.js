@@ -7,7 +7,7 @@
 // Every mutation goes through render(), so persisting there is what makes the
 // day survive a closed tab without each call site having to remember.
 
-import { emptyState, load, save } from './storage.js';
+import { emptyState, load, save, subscribe } from './storage.js';
 import {
   formatClock,
   formatCompact,
@@ -36,6 +36,10 @@ let storageOk = true;
 // Which reset is awaiting confirmation: null, 'tasks', or 'assignments'.
 // Two-step, so a stray click cannot erase a page's data.
 let resetArmed = null;
+
+// True only while painting state that arrived from another tab. Read by
+// setValue, which then leaves a focused field alone.
+let adopting = false;
 
 const form = document.querySelector('[data-form="capture"]');
 const nameInput = form.elements.name;
@@ -117,6 +121,11 @@ const modePanels = {
 
 /** Only write a value that actually changed, so typing is never interrupted. */
 function setValue(el, value) {
+  // A cross-tab update lands at an arbitrary moment, so it must not yank a
+  // field out from under someone mid-keystroke. Local renders still write
+  // through, or a clamped value could never correct the input that caused it.
+  if (adopting && el === document.activeElement) return;
+
   const next = String(value);
   if (el.value !== next) el.value = next;
 }
@@ -156,6 +165,31 @@ function reconcileOpenRun() {
     });
   }
   state.runningSince = null;
+}
+
+/**
+ * Another tab wrote; take its state as ours and repaint.
+ *
+ * Deliberately *not* reconciled. reconcileOpenRun() is for a tab that came back
+ * from the dead and must not claim time it cannot vouch for. A run arriving
+ * from a live sibling is the opposite case: it is still going, and closing it
+ * here would stop a timer the user is watching in the other tab.
+ *
+ * Repaints without persisting. Writing back would fire the same event in the
+ * tab that just wrote, and the two would volley forever.
+ */
+function adoptExternalState(next) {
+  state = next;
+
+  // An armed confirmation belongs to data that has since been replaced.
+  resetArmed = null;
+
+  adopting = true;
+  try {
+    repaint();
+  } finally {
+    adopting = false;
+  }
 }
 
 // While the timer runs, nothing else triggers a write, so a crash would lose
@@ -1058,7 +1092,10 @@ function paintTimer() {
 
 function render() {
   persist();
+  repaint();
+}
 
+function repaint() {
   renderItems();
   renderTimerItem();
   renderControls();
@@ -2489,6 +2526,11 @@ function renderPage() {
 addEventListener('hashchange', render);
 
 reconcileOpenRun();
+
+// From here on every other tab's writes land here, so the two stay in step
+// without either of them reloading.
+subscribe(adoptExternalState);
+
 buildTicks();
 buildMonthOptions();
 buildDayOptions();
