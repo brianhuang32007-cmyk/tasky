@@ -140,6 +140,35 @@ boots clean instead of failing to start.
 **Reset tracked data** at the foot of the page wipes everything. It is two-step
 rather than a modal — the project has no modals — because it cannot be undone.
 
+### The device clock
+
+`state.device` records what this device's clock says and where it thinks it is
+— `{ timeZone, offsetMinutes, locale, firstSeenAt, lastSeenAt }` — refreshed on
+every render and kept in every save. `offsetMinutes` is flipped from
+`getTimezoneOffset()`, which counts minutes *behind* UTC: UTC-7 stores as -420,
+the way offsets are actually written.
+
+**It is a record, not an authority.** Reminders, next-occurrence dates and both
+calendar exports re-read the clock at the moment they need it, and must keep
+doing so. Resolving a due date against a zone stored last week would quietly
+produce the wrong day for anyone who has travelled since. What the stored copy
+buys is history: when this device was first seen, when it was last seen, and
+what zone it claimed each time.
+
+`firstSeenAt` survives reloads; only `lastSeenAt` moves. A save written before
+this field existed loads fine and gains one, via the same `withDefaults()` merge
+every other added field goes through.
+
+The status bar shows the reading live, so what the app thinks the time is can be
+checked at a glance rather than taken on trust. It repaints **on the second**,
+re-aligning each tick rather than running a fixed interval — an interval drifts
+against the clock it reports, and two tabs opened moments apart would sit
+visibly out of step. Painting touches only text, so it triggers no render and no
+write: measured at zero writes across five idle seconds with the clock ticking.
+
+The reading is taken in `render()` rather than `repaint()`, so a tab adopting
+another tab's state does not inherit its device block as though it were its own.
+
 ### Cross-tab sync
 
 Every tab on the same origin shares one `localStorage` key, so two open tabs

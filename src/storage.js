@@ -36,6 +36,11 @@ export function emptyState() {
     // so a stale one is never presented as current.
     analysis: null, // { sections, generatedAt, fingerprint, goalCount }
 
+    // What the device's clock said and where it thinks it is, as last observed.
+    // A record, not an authority: live date maths always re-reads the clock,
+    // because a stored zone goes stale the moment the user travels.
+    device: null,   // { timeZone, offsetMinutes, locale, firstSeenAt, lastSeenAt }
+
     // The moment of the last successful write. On load this is the latest
     // point the app is known to have been alive, which is what bounds an
     // interrupted run — see reconcileOpenRun() in main.js.

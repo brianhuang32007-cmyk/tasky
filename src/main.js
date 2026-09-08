@@ -46,6 +46,7 @@ const nameInput = form.elements.name;
 const hint = document.querySelector('[data-region="capture-hint"]');
 const itemsRegion = document.querySelector('[data-region="items"]');
 const statusRegion = document.querySelector('[data-region="status"]');
+const deviceClockRegion = document.querySelector('[data-region="device-clock"]');
 const timerItemRegion = document.querySelector('[data-region="timer-item"]');
 const digitalRegion = document.querySelector('[data-region="digital"]');
 const controlsRegion = document.querySelector('[data-region="controls"]');
@@ -137,6 +138,71 @@ const newId = () =>
   `i${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
 const selectedItem = () => state.items.find((i) => i.id === state.selectedId);
+
+// --- the device clock -----------------------------------------------------
+
+/**
+ * What this device's clock currently says, and where it thinks it is.
+ *
+ * `getTimezoneOffset` counts minutes *behind* UTC, which is the opposite sign
+ * from how offsets are written, so it is flipped here: UTC-7 stores as -420.
+ */
+function readDevice() {
+  const now = new Date();
+  const resolved = Intl.DateTimeFormat().resolvedOptions();
+
+  return {
+    timeZone: resolved.timeZone ?? null,
+    offsetMinutes: -now.getTimezoneOffset(),
+    locale: resolved.locale ?? null,
+    seenAt: now.getTime(),
+  };
+}
+
+/**
+ * Records the current reading, keeping the first one ever taken.
+ *
+ * Deliberately a record and nothing more. Reminders, next-occurrence dates and
+ * the calendar exports all re-read the clock at the moment they need it, and
+ * must keep doing so — resolving a due date against a zone stored last week
+ * would quietly produce the wrong day for anyone who has travelled since.
+ */
+function syncDevice() {
+  const read = readDevice();
+  const previous = state.device ?? {};
+
+  state.device = {
+    timeZone: read.timeZone,
+    offsetMinutes: read.offsetMinutes,
+    locale: read.locale,
+    firstSeenAt: previous.firstSeenAt ?? read.seenAt,
+    lastSeenAt: read.seenAt,
+  };
+}
+
+/**
+ * Repaints on the second rather than every 1000ms from whenever the page
+ * happened to load, re-aligning each tick. A plain interval drifts against the
+ * clock it is reporting, and two tabs opened moments apart would sit visibly
+ * out of step with each other.
+ */
+function startDeviceClock() {
+  paintDeviceClock();
+  setTimeout(startDeviceClock, 1000 - (Date.now() % 1000));
+}
+
+/** Ticks on its own, so it stays right whether or not anything else changes. */
+function paintDeviceClock() {
+  const now = new Date();
+
+  // The device's own locale decides the wording and the 12/24-hour choice.
+  deviceClockRegion.textContent = now.toLocaleString(undefined, {
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: 'numeric', minute: '2-digit', second: '2-digit',
+  });
+  deviceClockRegion.dateTime = now.toISOString();
+  deviceClockRegion.title = state.device?.timeZone ?? '';
+}
 
 // --- persistence ----------------------------------------------------------
 
@@ -1091,6 +1157,7 @@ function paintTimer() {
 }
 
 function render() {
+  syncDevice();
   persist();
   repaint();
 }
@@ -2526,6 +2593,9 @@ function renderPage() {
 addEventListener('hashchange', render);
 
 reconcileOpenRun();
+
+startDeviceClock();
+
 
 // From here on every other tab's writes land here, so the two stay in step
 // without either of them reloading.
