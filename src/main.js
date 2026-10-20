@@ -2119,6 +2119,44 @@ function renderAssignmentForm() {
   whenLabel.textContent = kind === 'assignment' ? 'Due' : 'On';
 }
 
+/**
+ * Days left until this is due.
+ *
+ * Open, dated entries only: a finished assignment has no deadline left to count
+ * down to, and Other has no date. Returns an empty fragment otherwise, so the
+ * call site needs no guard — append(null) would write "null" into the row.
+ *
+ * Built on `daysUntil()`, the reminders' own helper, so the row, the reminder
+ * windows and the calendar export all resolve a yearless date identically: a
+ * date already past this year counts down to next year's.
+ */
+function countdownChip(entry) {
+  if (isDone(entry)) return document.createDocumentFragment();
+
+  const days = daysUntil(entry);
+  if (days === null) return document.createDocumentFragment();
+
+  const chip = document.createElement('span');
+  chip.className = 'assignment-countdown';
+  // Only the last day earns a raised voice; everything else stays quiet so the
+  // type colours keep carrying the page.
+  if (days <= 1) chip.dataset.urgency = 'now';
+
+  if (days === 0) {
+    chip.textContent = 'Today';
+  } else if (days === 1) {
+    chip.textContent = 'Tomorrow';
+  } else {
+    // The number is the message, so it is the part given weight.
+    const count = document.createElement('strong');
+    count.textContent = String(days);
+    chip.append(count, ' days');
+  }
+
+  chip.title = `Due ${dueLabel(days)}`;
+  return chip;
+}
+
 function assignmentRow(entry) {
   const li = document.createElement('li');
   li.className = isDone(entry) ? 'assignment is-done' : 'assignment';
@@ -2142,6 +2180,8 @@ function assignmentRow(entry) {
     date.textContent = entry.kind === 'assignment' ? `Due ${when}` : when;
     li.append(date);
   }
+
+  li.append(countdownChip(entry));
 
   if (entry.description) {
     const desc = document.createElement('span');

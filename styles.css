@@ -1451,8 +1451,14 @@ body {
 
 .assignment {
   display: flex;
+  /* Wraps rather than overflowing. A row carries a lot now — badge, date,
+     countdown, time, meter, three controls — and with the title free to shrink
+     to nothing the trailing chips used to spill past the edge instead of
+     moving down. The title's min-width below is what decides when that
+     happens, so there is no breakpoint to keep in sync. */
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
   padding: 10px 6px 10px 12px;
   border: 1px solid var(--border);
   border-left: 4px solid var(--type, var(--accent));
@@ -1487,7 +1493,11 @@ body {
 
 .assignment-title {
   flex: 1;
-  min-width: 0;
+  /* Not 0: a floor here is what turns "squeeze the name away and overflow"
+     into "keep the name readable and wrap the chips". Flex breaks lines on
+     hypothetical sizes, so a row that fits is still one line with the title
+     growing to fill it. */
+  min-width: 150px;
   overflow: hidden;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -2360,3 +2370,33 @@ body {
 /* Hover must not wipe out the tag: leave the outline to say what it is and let
    the border alone answer the pointer. */
 .item.is-tagged:hover { border-color: var(--tag); }
+
+
+/* --- the due countdown ---------------------------------------------------
+   Days left, not a second copy of the date beside it. The number carries the
+   message, so the number is what gets the weight. */
+
+.assignment-countdown {
+  flex: none;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.assignment-countdown strong {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* The last day before a deadline is the one case worth raising a voice about.
+   Everything further out stays neutral, so this never competes with the
+   per-type colours that carry the rest of the page. */
+.assignment-countdown[data-urgency="now"] {
+  border-color: var(--alert);
+  color: var(--alert);
+  font-weight: 650;
+}

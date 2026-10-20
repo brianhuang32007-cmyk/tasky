@@ -297,6 +297,30 @@ value ever reaches `addAssignment` from somewhere other than that input.
 Time is free text on purpose ("9am", "period 3", "after lunch"), because a
 picker would demand precision the user may not have.
 
+### The due countdown
+
+Every **open, dated** row carries a chip saying how many days are left: `Today`,
+`Tomorrow`, then `3 days`, `12 days`. The number is the message, so it is the
+part given weight. Completed rows drop it — there is no deadline left to count
+down to — and Other never had a date to count from.
+
+It is built on `daysUntil()`, the reminders' own helper, so the row, the
+reminder windows and the calendar export all resolve a yearless date the same
+way. A date already past this year therefore counts down to next year's, which
+is why "yesterday" reads as `364 days` rather than going negative.
+
+**Only the last day raises its voice.** Due today or tomorrow takes the alert
+colour; everything further out stays neutral, so the countdown never competes
+with the per-type colours that carry the rest of the page.
+
+Adding it made the row too wide to hold one line on a narrow window, so
+**`.assignment` now wraps instead of overflowing**. The trigger is the title's
+`min-width`, not a breakpoint: flex breaks lines on hypothetical sizes, so a row
+that fits stays one line with the title growing to fill it, and a row that does
+not sends its trailing chips to a second line. With the title free to shrink to
+zero, as it was before, the chips spilled past the edge instead — which they had
+already begun to do below about 440px before this chip existed.
+
 ### Reminders
 
 Three nested windows — **due within 1 day, 3 days, 1 week** — each a
