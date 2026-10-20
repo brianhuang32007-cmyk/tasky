@@ -6,3 +6,6 @@ preview.html
 
 # Local Python env for the analysis server; never belongs in a public repo.
 .venv/
+
+# Generated design-proposal snapshot; rebuild with --styles/--out.
+preview-v2.html

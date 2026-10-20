@@ -1,0 +1,606 @@
+/* =========================================================================
+   Tasky v2 — a design layer, loaded *after* styles.css.
+   =========================================================================
+
+   A proposal, not a replacement. It overrides look — palette, type, density,
+   depth — and leaves structure to styles.css wherever structure still works.
+   Drop the second stylesheet and the old skin returns untouched.
+
+   Second pass. Four notes drove it:
+
+     more space between buttons and sections   ->  a wider rhythm throughout
+     use opacity                               ->  translucent cards over a
+                                                   tinted ground, and secondary
+                                                   controls that recede
+     more like a dashboard                     ->  the tabs become a left rail
+     outline the buttons more                  ->  every button states an edge  */
+
+/* --- palette -------------------------------------------------------------
+   Warm, because that is Tasky, but pulled back from honey toward paper so the
+   orange reads as a chosen accent rather than as the background's own colour. */
+
+:root {
+  --bg: #f4f2ef;
+  --surface: #ffffff;
+  --border: #e6e1d9;
+  --text: #16130f;
+  --muted: #8a8177;
+
+  --accent: #d9702f;
+  --accent-strong: #ae5219;
+  --accent-soft: #fbf1ea;
+
+  --yellow-soft: #f8efd8;
+  --yellow-ink: #87681a;
+  --yellow-border: #e4d3a4;
+
+  --alert: #b23f1e;
+
+  --success: #2f9e6e;
+  --success-strong: #1f7a54;
+  --success-soft: #e4f4ec;
+
+  --radius: 16px;
+  --gap: 26px;
+
+  /* Opacity used as structure rather than decoration: cards sit *over* the
+     ground rather than replacing it, so panels layer instead of tiling. */
+  --panel: color-mix(in srgb, #ffffff 78%, transparent);
+  --hairline: color-mix(in srgb, var(--text) 8%, transparent);
+  --btn-line: color-mix(in srgb, var(--text) 24%, transparent);
+
+  /* Secondary controls recede until the row they belong to is pointed at. */
+  --dim: 0.45;
+
+  --rail: 236px;
+}
+
+/* A ground with something in it, so the translucency has something to reveal.
+   Two very soft washes, far enough apart that neither reads as a shape. */
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 620px at 14% -8%,
+      color-mix(in srgb, var(--accent) 9%, transparent), transparent 60%),
+    radial-gradient(900px 560px at 92% 8%,
+      color-mix(in srgb, #7a95b8 9%, transparent), transparent 62%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- the dashboard shell -------------------------------------------------
+   The header becomes a left rail, with no markup change: the body is a
+   two-column grid, the header takes column one across every row, and the
+   pages and status bar stack down column two. */
+
+body {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.topbar {
+  grid-column: 1;
+  grid-row: 1 / -1;
+  align-self: start;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 30px 20px;
+  border-bottom: 0;
+  border-right: 1px solid var(--border);
+  background: color-mix(in srgb, #ffffff 42%, transparent);
+}
+
+.page { grid-column: 2; grid-row: 1; }
+.statusbar { grid-column: 2; grid-row: 2; }
+
+/* The brand stops being a centred crest and becomes a mark at the head of a
+   rail: mascot and wordmark on one line, caption beneath, both left-aligned. */
+.brand { align-items: flex-start; gap: 6px; }
+.brand-row { gap: 11px; }
+
+.mascot { width: 34px; height: 34px; }
+
+.wordmark {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  /* Tracking leaves a gap after the last letter; pull it back so the lockup
+     is optically aligned rather than mathematically aligned. */
+  margin-right: -0.2em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.tagline {
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+/* Rail navigation: full-width rows with an active bar, not pills. */
+.tabs {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 4px;
+  margin-top: 34px;
+}
+
+.tab {
+  padding: 11px 14px;
+  border-radius: 10px;
+  border-left: 2px solid transparent;
+  font-size: 13.5px;
+  font-weight: 550;
+  color: var(--muted);
+}
+
+.tab:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text);
+}
+
+.tab.is-active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+
+/* --- surfaces ------------------------------------------------------------
+   Translucent cards, a generous radius, no shadow — the alpha already
+   separates the planes and a shadow on top would only muddy them. */
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  backdrop-filter: blur(10px) saturate(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
+}
+
+.panel-timer { background: var(--panel); }
+
+.panel-title {
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.panel-body { padding: 22px 24px; }
+
+.work { padding: var(--gap) var(--gap) 0; }
+.review { padding: var(--gap); gap: var(--gap); }
+.assignments { padding: var(--gap); gap: var(--gap); }
+
+/* --- list rows -----------------------------------------------------------
+   Eight bordered, rounded, gapped cards read as eight boxes; hairline-
+   separated rows read as one list. A row draws no border of its own until it
+   is pointed at. */
+
+.items,
+.assignment-list,
+.tag-list {
+  gap: 0;
+}
+
+.item,
+.log-row,
+.assignment,
+.tag-row {
+  border: 1px solid transparent;
+  border-bottom-color: var(--hairline);
+  border-radius: 10px;
+  background: none;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.items > .item:last-child,
+.items > .log-row:last-child,
+.assignment-list > .assignment:last-child,
+.tag-list > .tag-row:last-child {
+  border-bottom-color: transparent;
+}
+
+.item:hover,
+.log-row:hover,
+.assignment:hover,
+.tag-row:hover {
+  background: color-mix(in srgb, #ffffff 70%, transparent);
+  border-bottom-color: transparent;
+}
+
+.item.is-selected {
+  border-color: transparent;
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* Colour arrives as an inset bar everywhere — assignment type, tag, both. A
+   ring would be the only box on an otherwise borderless row. */
+.assignment,
+.tag-row {
+  border-left: 1px solid transparent;
+  padding-left: 16px;
+}
+
+.assignment { box-shadow: inset 2px 0 0 var(--type, var(--accent)); }
+.tag-row { box-shadow: inset 2px 0 0 var(--tag); }
+
+.item.is-tagged,
+.log-row.is-tagged {
+  outline: none;
+  box-shadow: inset 2px 0 0 var(--tag);
+  padding-left: 16px;
+}
+
+/* Selection outranks the tag: which row the timer belongs to matters more
+   right now than which tag it wears. */
+.item.is-selected.is-tagged { box-shadow: inset 2px 0 0 var(--accent); }
+
+/* Opacity doing the quiet work. Per-row controls stay back until the row is
+   pointed at, which takes most of the clutter out of a long list without
+   removing anything from it. Focus brings them back for the keyboard. */
+.item-delete,
+.item-resume,
+.item-check,
+.log-done,
+.tag-row-count {
+  opacity: var(--dim);
+  transition: opacity 0.12s;
+}
+
+.item:hover :is(.item-delete, .item-resume, .item-check, .log-done),
+.log-row:hover :is(.item-delete, .item-resume, .item-check, .log-done),
+.assignment:hover :is(.item-delete, .item-resume, .item-check),
+.tag-row:hover :is(.item-delete, .tag-row-count),
+.item-delete:focus-visible,
+.item-resume:focus-visible,
+.item-check:focus-visible {
+  opacity: 1;
+}
+
+/* --- the timer, as the hero ---------------------------------------------- */
+
+.timer { gap: 22px; }
+
+.timer-digital {
+  font-size: 76px;
+  font-weight: 200;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.timer-name {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.timer-empty {
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.clock { width: 148px; height: 148px; }
+
+.clock-face {
+  fill: color-mix(in srgb, #ffffff 55%, transparent);
+  stroke: var(--hairline);
+}
+
+/* --- buttons -------------------------------------------------------------
+   Every button states an edge. Secondary buttons carry it alone; the filled
+   ones carry a darker edge over the fill, so the family matches. */
+
+.btn,
+.btn-add,
+.btn-manual,
+.btn-finish,
+.btn-reset,
+.btn-cal,
+.btn-cal-option,
+.btn-progress,
+.btn-complete {
+  border-radius: 10px;
+  border-width: 1.5px;
+  border-style: solid;
+  font-weight: 600;
+}
+
+.btn-primary,
+.btn-add {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-add:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.btn-secondary,
+.btn-manual,
+.btn-finish,
+.btn-reset {
+  background: color-mix(in srgb, #ffffff 55%, transparent);
+  border-color: var(--btn-line);
+  color: var(--text);
+}
+
+.btn-secondary:hover:not(:disabled),
+.btn-manual:hover,
+.btn-finish:hover:not(:disabled),
+.btn-reset:hover {
+  background: #fff;
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.btn:disabled,
+.btn-finish:disabled { opacity: 0.38; }
+
+/* The two once-a-day actions take the editorial treatment: an outlined
+   rectangle in spaced caps, which is what they are. */
+[data-action="generate"],
+[data-action="print-summary"] {
+  padding: 15px 30px;
+  border: 1.5px solid var(--text);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+[data-action="generate"]:hover,
+[data-action="print-summary"]:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* Air between any two buttons that sit together. */
+.timer-controls { gap: 14px; margin-top: 4px; }
+.reset-actions { gap: 14px; }
+.cal-choice { gap: 12px; margin-top: 14px; }
+.progress-back { gap: 16px; }
+.capture { gap: 14px; }
+.manual { gap: 12px; }
+.tag-form { gap: 16px; }
+
+.page-actions { padding: 34px var(--gap) 10px; gap: 12px; }
+.reset-zone { padding: 28px var(--gap) 34px; }
+
+/* --- fields -------------------------------------------------------------- */
+
+.capture-name,
+.manual-name,
+.goal-input,
+.tag-name,
+.assignment-name,
+.assignment-desc,
+.assignment-time,
+.progress-note,
+.subtask-name {
+  border-radius: 10px;
+  border-color: var(--btn-line);
+  background: color-mix(in srgb, #ffffff 72%, transparent);
+}
+
+.capture-name:focus-visible,
+.tag-name:focus-visible,
+.progress-note:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  background: #fff;
+}
+
+/* --- badges and chips ---------------------------------------------------- */
+
+.badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.item-time,
+.log-duration,
+.assignment-when,
+.tag-row-count {
+  font-size: 12px;
+}
+
+.log-done {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+/* --- stat tiles ----------------------------------------------------------
+   A tiny label over a large light number — the one idea worth lifting whole
+   from a dashboard. */
+
+.total,
+.asg-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, #ffffff 66%, transparent);
+}
+
+.total-label,
+.asg-total-label {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.total-value {
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.asg-total-counts {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.asg-total-counts strong {
+  font-size: 25px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+/* Fully tinted tiles were the loudest thing on the page. The colour moves to
+   the label, so the four read as one row and type colour goes back to
+   identifying rather than decorating. */
+.asg-total[data-kind] {
+  background: color-mix(in srgb, #ffffff 66%, transparent);
+  border-color: var(--border);
+}
+
+.asg-total[data-kind] .asg-total-label { color: var(--type-ink); }
+.asg-total[data-kind] .asg-total-counts strong { color: var(--text); }
+
+/* --- one accent ----------------------------------------------------------
+   The cyan page theme retires: one palette across the app, with the three
+   assignment types keeping their colours only where they identify something.
+   A second full theme was the loudest thing here, and the first thing a
+   "clean and modern" brief would take out. */
+
+.page[data-page="assignments"],
+.page[data-page="progress"] {
+  --bg: #f4f2ef;
+  --surface: #ffffff;
+  --border: #e6e1d9;
+  --text: #16130f;
+  --muted: #8a8177;
+  --accent: #d9702f;
+  --accent-strong: #ae5219;
+  --accent-soft: #fbf1ea;
+  --glow: none;
+}
+
+.page[data-page="assignments"] .panel-title,
+.page[data-page="progress"] .panel-title {
+  color: var(--muted);
+}
+
+/* --- reminders ----------------------------------------------------------- */
+
+.reminder {
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  background: none;
+}
+
+.reminder:last-of-type { border-bottom: 0; }
+.reminder > summary { padding: 16px 4px; }
+
+.reminder-label { font-size: 13px; font-weight: 550; }
+
+.reminder-count {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+
+/* --- status bar ---------------------------------------------------------- */
+
+.statusbar {
+  padding: 14px var(--gap);
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, #ffffff 42%, transparent);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+/* --- progress page ------------------------------------------------------- */
+
+.progress-head { padding-bottom: 18px; margin-bottom: 20px; }
+
+.progress-name {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.progress-percent {
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.field-label {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+}
+
+/* --- narrow windows ------------------------------------------------------
+   Below the rail's comfortable width it folds back into the stacked top bar
+   the base sheet already lays out, so nothing here has to re-solve mobile. */
+
+@media (max-width: 900px) {
+  body {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    position: static;
+    height: auto;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px var(--gap);
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand { align-items: center; }
+  .tagline { text-align: center; }
+
+  .tabs {
+    flex-direction: row;
+    justify-content: center;
+    margin-top: 16px;
+  }
+
+  .tab { border-left: 0; border-bottom: 2px solid transparent; }
+  .tab.is-active { border-left: 0; border-bottom-color: var(--accent); }
+}
