@@ -3,18 +3,19 @@
    =========================================================================
 
    A proposal, not a replacement. It overrides look — palette, type, density,
-   depth — and leaves structure to styles.css wherever structure still works.
+   weight — and leaves structure to styles.css wherever structure still works.
    Drop the second stylesheet and the old skin returns untouched.
 
-   Second pass. Four notes drove it:
+   Rewritten rather than patched again. Four rounds of "still unclear" had
+   left three override passes arguing with each other, and the thing they were
+   arguing about turned out to be the wrong idea: hairline-separated rows.
 
-     more space between buttons and sections   ->  a wider rhythm throughout
-     use opacity                               ->  translucent cards over a
-                                                   tinted ground, and secondary
-                                                   controls that recede
-     more like a dashboard                     ->  a slim product bar, mark left
-                                                   and nav right, sticky
-     outline the buttons more                  ->  every button states an edge  */
+   What the rounds actually established:
+
+     controls need a dark edge, not a tinted one   ->  near-black at 1.5px
+     entries need to be bounded, not separated     ->  every row is a card
+     secondary text was too faint to read          ->  --muted darkened hard
+     opacity must not cost contrast                ->  kept, but barely       */
 
 /* --- palette -------------------------------------------------------------
    Warm, because that is Tasky, but pulled back from honey toward paper so the
@@ -23,42 +24,42 @@
 :root {
   --bg: #f4f2ef;
   --surface: #ffffff;
-  --border: #e6e1d9;
   --text: #16130f;
-  --muted: #8a8177;
+
+  /* Was #8a8177, which is where "DONE", the durations, the item counts and
+     every panel title were disappearing. Secondary should mean quieter than
+     the heading, not harder to read than the background. */
+  --muted: #63594f;
+
+  /* Three weights of line, each with a job:
+       --btn-line  anything a pointer acts on
+       --line      the edge of an entry
+       --border    the shell: panels, tiles, bars            */
+  --btn-line: #3d362e;
+  --line: #b3a795;
+  --border: #c7bcaa;
 
   --accent: #d9702f;
   --accent-strong: #ae5219;
   --accent-soft: #fbf1ea;
 
   --yellow-soft: #f8efd8;
-  --yellow-ink: #87681a;
-  --yellow-border: #e4d3a4;
+  --yellow-ink: #7a5d14;
+  --yellow-border: #d9c48d;
 
-  --alert: #b23f1e;
+  --alert: #a93a1a;
 
   --success: #2f9e6e;
-  --success-strong: #1f7a54;
+  --success-strong: #1b6b49;
   --success-soft: #e4f4ec;
 
   --radius: 16px;
   --gap: 26px;
-
-  /* Opacity used as structure rather than decoration: cards sit *over* the
-     ground rather than replacing it, so panels layer instead of tiling. */
-  --panel: color-mix(in srgb, #ffffff 78%, transparent);
-  --hairline: color-mix(in srgb, var(--text) 8%, transparent);
-  --btn-line: color-mix(in srgb, var(--text) 24%, transparent);
-
-  /* Secondary controls recede until the row they belong to is pointed at. */
-  --dim: 0.45;
-
-  /* Slim: the centred crest cost 128px of vertical space on every page. */
-  --topbar-h: 66px;
 }
 
-/* A ground with something in it, so the translucency has something to reveal.
-   Two very soft washes, far enough apart that neither reads as a shape. */
+/* A ground with something in it, so the translucency below has something to
+   reveal. Two very soft washes, far enough apart that neither reads as a
+   shape. */
 body {
   min-height: 100vh;
   background:
@@ -72,14 +73,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* --- the dashboard shell -------------------------------------------------
-   A slim top bar, the way an application states itself: the mark on the left,
-   navigation on the right, one hairline under the full width. The centred
-   crest reads as a landing page; moving the mark left and the nav right is
-   most of what makes a bar read as a product instead.
+/* --- the shell: a slim bar across the top --------------------------------
+   The mark on the left, navigation on the right, one rule under the full
+   width. A centred crest reads as a landing page; this reads as an app. 66px
+   rather than the original 128px, and sticky so the nav stays reachable while
+   the review zone scrolls under it. */
 
-   Sticky, so navigation stays reachable while the review zone scrolls under
-   it — and translucent, so what passes beneath is visible rather than hidden. */
+:root { --topbar-h: 66px; }
 
 .topbar {
   position: sticky;
@@ -90,13 +90,12 @@ body {
   justify-content: space-between;
   gap: var(--gap);
   padding: 0 var(--gap);
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, #ffffff 72%, transparent);
+  border-bottom: 2px solid var(--border);
+  background: color-mix(in srgb, #ffffff 88%, transparent);
   backdrop-filter: blur(12px) saturate(1.1);
   -webkit-backdrop-filter: blur(12px) saturate(1.1);
 }
 
-/* Mark and caption on one line, divided by a rule rather than a bullet. */
 .brand {
   flex-direction: row;
   align-items: center;
@@ -105,12 +104,11 @@ body {
 }
 
 .brand-row { gap: 10px; }
-
 .mascot { width: 30px; height: 30px; }
 
 .wordmark {
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: 0.2em;
   /* Tracking leaves a gap after the last letter; pull it back so the lockup
      sits where the eye expects it to. */
@@ -121,656 +119,140 @@ body {
 
 .tagline {
   padding-left: 14px;
-  border-left: 1px solid var(--border);
+  border-left: 2px solid var(--border);
   text-align: left;
   font-size: 10.5px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
   color: var(--muted);
-  opacity: 0.8;
 }
 
-.tabs {
-  flex: none;
-  flex-wrap: nowrap;
-  gap: 4px;
-}
+.tabs { flex: none; flex-wrap: nowrap; gap: 6px; }
 
-/* A soft filled pill rather than an underline: the bar already draws a line
-   under itself, and a second one directly above it reads as a mistake. */
+/* A filled pill, not an underline: the bar already draws a line under itself
+   and a second one directly above it reads as a mistake. */
 .tab {
   padding: 8px 15px;
+  border: 1.5px solid transparent;
   border-radius: 9px;
   font-size: 13.5px;
-  font-weight: 550;
+  font-weight: 600;
   color: var(--muted);
 }
 
 .tab:hover {
-  background: color-mix(in srgb, var(--text) 5%, transparent);
+  background: #fff;
+  border-color: var(--line);
   color: var(--text);
 }
 
 .tab.is-active {
   background: var(--accent-soft);
+  border-color: var(--accent);
   color: var(--accent-strong);
-  font-weight: 650;
+  font-weight: 700;
 }
 
-/* --- surfaces ------------------------------------------------------------
-   Translucent cards, a generous radius, no shadow — the alpha already
-   separates the planes and a shadow on top would only muddy them. */
+/* --- panels --------------------------------------------------------------
+   Near-solid rather than translucent. The layered look is still there in the
+   ground showing through at the edges, but a card that content sits on has to
+   hold its own contrast. */
 
 .panel {
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: var(--radius);
-  background: var(--panel);
-  backdrop-filter: blur(10px) saturate(1.08);
-  -webkit-backdrop-filter: blur(10px) saturate(1.08);
+  background: color-mix(in srgb, #ffffff 94%, transparent);
+  backdrop-filter: blur(10px) saturate(1.06);
+  -webkit-backdrop-filter: blur(10px) saturate(1.06);
 }
 
-.panel-timer { background: var(--panel); }
+.panel-timer { background: color-mix(in srgb, #ffffff 94%, transparent); }
 
 .panel-title {
-  padding: 18px 24px 16px;
-  border-bottom: 1px solid var(--hairline);
-  font-size: 10.5px;
-  font-weight: 650;
-  letter-spacing: 0.14em;
+  padding: 17px 24px 15px;
+  border-bottom: 2px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
   color: var(--muted);
 }
 
-.panel-body { padding: 22px 24px; }
+.panel-body { padding: 20px 22px; }
 
 .work { padding: var(--gap) var(--gap) 0; }
 .review { padding: var(--gap); gap: var(--gap); }
 .assignments { padding: var(--gap); gap: var(--gap); }
 
-/* --- list rows -----------------------------------------------------------
-   Eight bordered, rounded, gapped cards read as eight boxes; hairline-
-   separated rows read as one list. A row draws no border of its own until it
-   is pointed at. */
+/* --- entries -------------------------------------------------------------
+   Every row is a bounded card. The previous pass separated rows with a rule
+   instead of enclosing them, which looked tidy in isolation and read as a
+   vague stack in use — the eye had nothing to tell it where one entry stopped
+   and the next began. A visible edge all the way round answers that outright. */
 
 .items,
 .assignment-list,
 .tag-list {
-  gap: 0;
+  gap: 9px;
 }
 
 .item,
 .log-row,
 .assignment,
 .tag-row {
-  border: 1px solid transparent;
-  border-bottom-color: var(--hairline);
+  border: 1.5px solid var(--line);
   border-radius: 10px;
-  background: none;
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-
-.items > .item:last-child,
-.items > .log-row:last-child,
-.assignment-list > .assignment:last-child,
-.tag-list > .tag-row:last-child {
-  border-bottom-color: transparent;
+  background: var(--surface);
+  padding-top: 11px;
+  padding-bottom: 11px;
 }
 
 .item:hover,
 .log-row:hover,
 .assignment:hover,
 .tag-row:hover {
-  background: color-mix(in srgb, #ffffff 70%, transparent);
-  border-bottom-color: transparent;
+  border-color: var(--btn-line);
+  background: #fff;
 }
 
+/* Selection: the accent on the edge as well as in the fill, so it does not
+   depend on a pale tint being noticed. */
 .item.is-selected {
-  border-color: transparent;
+  border-color: var(--accent);
   background: var(--accent-soft);
-  box-shadow: inset 2px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
-/* Colour arrives as an inset bar everywhere — assignment type, tag, both. A
-   ring would be the only box on an otherwise borderless row. */
-.assignment,
-.tag-row {
-  border-left: 1px solid transparent;
+/* Colour arrives as an inset bar, inside the row's own edge rather than
+   instead of it. */
+.assignment {
+  border-left-width: 1.5px;
+  box-shadow: inset 3px 0 0 var(--type, var(--accent));
   padding-left: 16px;
 }
 
-.assignment { box-shadow: inset 2px 0 0 var(--type, var(--accent)); }
-.tag-row { box-shadow: inset 2px 0 0 var(--tag); }
+.tag-row {
+  box-shadow: inset 3px 0 0 var(--tag);
+  padding-left: 16px;
+}
 
 .item.is-tagged,
 .log-row.is-tagged {
   outline: none;
-  box-shadow: inset 2px 0 0 var(--tag);
+  box-shadow: inset 3px 0 0 var(--tag);
   padding-left: 16px;
 }
 
 /* Selection outranks the tag: which row the timer belongs to matters more
    right now than which tag it wears. */
-.item.is-selected.is-tagged { box-shadow: inset 2px 0 0 var(--accent); }
+.item.is-selected.is-tagged { box-shadow: inset 3px 0 0 var(--accent); }
 
-/* Opacity doing the quiet work. Per-row controls stay back until the row is
-   pointed at, which takes most of the clutter out of a long list without
-   removing anything from it. Focus brings them back for the keyboard. */
-.item-delete,
-.item-resume,
-.item-check,
-.log-done,
-.tag-row-count {
-  opacity: var(--dim);
-  transition: opacity 0.12s;
-}
+/* --- controls ------------------------------------------------------------
+   1.5px, in near-black. The weight is modest; the colour is not. Four rounds
+   established that a tinted edge disappears at any width and a dark one reads
+   at the thinnest. */
 
-.item:hover :is(.item-delete, .item-resume, .item-check, .log-done),
-.log-row:hover :is(.item-delete, .item-resume, .item-check, .log-done),
-.assignment:hover :is(.item-delete, .item-resume, .item-check),
-.tag-row:hover :is(.item-delete, .tag-row-count),
-.item-delete:focus-visible,
-.item-resume:focus-visible,
-.item-check:focus-visible {
-  opacity: 1;
-}
-
-/* --- the timer, as the hero ---------------------------------------------- */
-
-.timer { gap: 22px; }
-
-.timer-digital {
-  font-size: 76px;
-  font-weight: 200;
-  letter-spacing: -0.035em;
-  line-height: 1;
-}
-
-.timer-name {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-}
-
-.timer-empty {
-  font-size: 11.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.75;
-}
-
-.clock { width: 148px; height: 148px; }
-
-.clock-face {
-  fill: color-mix(in srgb, #ffffff 55%, transparent);
-  stroke: var(--hairline);
-}
-
-/* --- buttons -------------------------------------------------------------
-   Every button states an edge. Secondary buttons carry it alone; the filled
-   ones carry a darker edge over the fill, so the family matches. */
-
-.btn,
-.btn-add,
-.btn-manual,
-.btn-finish,
-.btn-reset,
-.btn-cal,
-.btn-cal-option,
-.btn-progress,
-.btn-complete {
-  border-radius: 10px;
-  border-width: 1.5px;
-  border-style: solid;
-  font-weight: 600;
-}
-
-.btn-primary,
-.btn-add {
-  background: var(--accent);
-  border-color: var(--accent-strong);
-  color: #fff;
-}
-
-.btn-primary:hover:not(:disabled),
-.btn-add:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-}
-
-.btn-secondary,
-.btn-manual,
-.btn-finish,
-.btn-reset {
-  background: color-mix(in srgb, #ffffff 55%, transparent);
-  border-color: var(--btn-line);
-  color: var(--text);
-}
-
-.btn-secondary:hover:not(:disabled),
-.btn-manual:hover,
-.btn-finish:hover:not(:disabled),
-.btn-reset:hover {
-  background: #fff;
-  border-color: var(--text);
-  color: var(--text);
-}
-
-.btn:disabled,
-.btn-finish:disabled { opacity: 0.38; }
-
-/* The two once-a-day actions take the editorial treatment: an outlined
-   rectangle in spaced caps, which is what they are. */
-[data-action="generate"],
-[data-action="print-summary"] {
-  padding: 15px 30px;
-  border: 1.5px solid var(--text);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-[data-action="generate"]:hover,
-[data-action="print-summary"]:hover {
-  background: var(--text);
-  color: var(--bg);
-}
-
-/* Air between any two buttons that sit together. */
-.timer-controls { gap: 14px; margin-top: 4px; }
-.reset-actions { gap: 14px; }
-.cal-choice { gap: 12px; margin-top: 14px; }
-.progress-back { gap: 16px; }
-.capture { gap: 14px; }
-.manual { gap: 12px; }
-.tag-form { gap: 16px; }
-
-.page-actions { padding: 34px var(--gap) 10px; gap: 12px; }
-.reset-zone { padding: 28px var(--gap) 34px; }
-
-/* --- fields -------------------------------------------------------------- */
-
-.capture-name,
-.manual-name,
-.goal-input,
-.tag-name,
-.assignment-name,
-.assignment-desc,
-.assignment-time,
-.progress-note,
-.subtask-name {
-  border-radius: 10px;
-  border-color: var(--btn-line);
-  background: color-mix(in srgb, #ffffff 72%, transparent);
-}
-
-.capture-name:focus-visible,
-.tag-name:focus-visible,
-.progress-note:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-  background: #fff;
-}
-
-/* --- badges and chips ---------------------------------------------------- */
-
-.badge {
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.item-time,
-.log-duration,
-.assignment-when,
-.tag-row-count {
-  font-size: 12px;
-}
-
-.log-done {
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-}
-
-/* --- stat tiles ----------------------------------------------------------
-   A tiny label over a large light number — the one idea worth lifting whole
-   from a dashboard. */
-
-.total,
-.asg-total {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 18px 22px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: color-mix(in srgb, #ffffff 66%, transparent);
-}
-
-.total-label,
-.asg-total-label {
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.total-value {
-  font-size: 28px;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
-}
-
-.asg-total-counts {
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.asg-total-counts strong {
-  font-size: 25px;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-}
-
-/* Fully tinted tiles were the loudest thing on the page. The colour moves to
-   the label, so the four read as one row and type colour goes back to
-   identifying rather than decorating. */
-.asg-total[data-kind] {
-  background: color-mix(in srgb, #ffffff 66%, transparent);
-  border-color: var(--border);
-}
-
-.asg-total[data-kind] .asg-total-label { color: var(--type-ink); }
-.asg-total[data-kind] .asg-total-counts strong { color: var(--text); }
-
-/* --- one accent ----------------------------------------------------------
-   The cyan page theme retires: one palette across the app, with the three
-   assignment types keeping their colours only where they identify something.
-   A second full theme was the loudest thing here, and the first thing a
-   "clean and modern" brief would take out. */
-
-.page[data-page="assignments"],
-.page[data-page="progress"] {
-  --bg: #f4f2ef;
-  --surface: #ffffff;
-  --border: #e6e1d9;
-  --text: #16130f;
-  --muted: #8a8177;
-  --accent: #d9702f;
-  --accent-strong: #ae5219;
-  --accent-soft: #fbf1ea;
-  --glow: none;
-}
-
-.page[data-page="assignments"] .panel-title,
-.page[data-page="progress"] .panel-title {
-  color: var(--muted);
-}
-
-/* --- reminders ----------------------------------------------------------- */
-
-.reminder {
-  border: 0;
-  border-bottom: 1px solid var(--hairline);
-  border-radius: 0;
-  background: none;
-}
-
-.reminder:last-of-type { border-bottom: 0; }
-.reminder > summary { padding: 16px 4px; }
-
-.reminder-label { font-size: 13px; font-weight: 550; }
-
-.reminder-count {
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-}
-
-/* --- status bar ---------------------------------------------------------- */
-
-.statusbar {
-  padding: 14px var(--gap);
-  border-top: 1px solid var(--border);
-  background: color-mix(in srgb, #ffffff 42%, transparent);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  opacity: 0.85;
-}
-
-/* --- progress page ------------------------------------------------------- */
-
-.progress-head { padding-bottom: 18px; margin-bottom: 20px; }
-
-.progress-name {
-  font-size: 23px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-}
-
-.progress-percent {
-  font-size: 28px;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-}
-
-.field-label {
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.14em;
-}
-
-/* --- definition pass ----------------------------------------------------
-   The first cut traded too much contrast for calm: rows had no visible line
-   between them and the per-row controls read as smudges rather than buttons.
-   Quiet is not the same as unclear. Everything here raises an edge. */
-
-:root {
-  /* A solid line, not an alpha one. 14% of near-black over a near-white
-     panel computes to about #e8e6e4 — present in the inspector, absent to
-     the eye. This is the separator the list is actually built on, so it is
-     stated outright. */
-  --hairline: #d4cabb;
-  --border: #ddd6cb;
-  /* A stated grey, not a tint of the text colour. 30% of near-black over
-     white lands near #b6b1ab, which is still reading as a shadow rather than
-     as an edge. */
-  --btn-line: #a79d91;
-
-  /* Still receding, but legible while receding. */
-  --dim: 0.72;
-
-  /* Slightly more solid, so borders drawn on it have something to sit on. */
-  --panel: color-mix(in srgb, #ffffff 86%, transparent);
-}
-
-/* Rows are a list, not a stack of floating pills. A large radius made each
-   row read as its own card and left the separator with nothing to do; a small
-   one lets the rule between rows carry the structure instead. */
-.item,
-.log-row,
-.assignment,
-.tag-row,
-.item.is-selected {
-  border-radius: 6px;
-}
-
-/* The separator is that structure, so nothing is allowed to erase it.
-   Selection blanked every border including the bottom one, and hover did the
-   same, which is why a selected row above a last row showed no line at all. */
-.item,
-.log-row,
-.assignment,
-.tag-row,
-.item:hover,
-.log-row:hover,
-.assignment:hover,
-.tag-row:hover,
-.item.is-selected {
-  border-bottom-color: var(--hairline);
-}
-
-.items > .item:last-child,
-.items > .log-row:last-child,
-.assignment-list > .assignment:last-child,
-.tag-list > .tag-row:last-child {
-  border-bottom-color: transparent;
-}
-
-/* Per-row controls are buttons and should look like buttons. An edge each,
-   visible at rest, filled on hover. */
-.item-delete,
-.item-resume,
-.item-check {
-  border: 1px solid var(--btn-line);
-  border-radius: 8px;
-  background: color-mix(in srgb, #ffffff 55%, transparent);
-  color: var(--text);
-}
-
-.item-delete:hover { background: #fff; border-color: var(--alert); color: var(--alert); }
-.item-check:hover { background: #fff; border-color: var(--success-strong); color: var(--success-strong); }
-.item-resume:hover { background: #fff; border-color: var(--success-strong); }
-
-/* A dashed outline reads as a placeholder or a drop target, not a control.
-   The untagged pill is as real a control as the tagged one. */
-.tag-select {
-  border: 1px solid var(--btn-line);
-  border-style: solid;
-  background: color-mix(in srgb, #ffffff 60%, transparent);
-  color: var(--text);
-}
-
-.tag-select:hover { background: #fff; border-color: var(--text); }
-
-/* A badge tinted the same colour as the row it sits on disappears. An edge
-   keeps it readable on a filled row and on a bare one alike. */
-.badge {
-  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
-}
-
-/* The segmented control had two options and nothing between them. */
-.segmented {
-  gap: 0;
-  border-color: var(--btn-line);
-  background: color-mix(in srgb, #ffffff 55%, transparent);
-}
-
-.seg + .seg { border-left: 1px solid var(--hairline); }
-
-/* The chosen half carries a fill *and* an edge, so which one is live reads
-   without relying on colour alone. */
-.seg input:checked + span {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 18%, transparent);
-}
-
-/* Fields and panels, a shade more defined for the same reason. */
-.panel { border-color: var(--border); }
-
-.capture-name,
-.manual-name,
-.goal-input,
-.tag-name,
-.assignment-name,
-.assignment-desc,
-.assignment-time,
-.progress-note,
-.subtask-name,
-.manual select,
-.manual input,
-.assignment-form select {
-  border: 1px solid var(--btn-line);
-}
-
-/* --- bolder control outlines -------------------------------------------
-   Asked for twice, so this stops nudging. Every control a pointer can act on
-   carries a 1.5px edge in a stated grey, and every one of them darkens to the
-   full text colour on hover. The rule is simple enough to hold: if you can
-   click it, you can see where it ends. */
-
-.item-delete,
-.item-resume,
-.item-check,
-.tag-select,
-.btn,
-.btn-add,
-.btn-manual,
-.btn-finish,
-.btn-reset,
-.btn-cal,
-.btn-cal-option,
-.btn-progress,
-.segmented {
-  border-width: 1.5px;
-  border-style: solid;
-  border-color: var(--btn-line);
-}
-
-.item-delete:hover,
-.item-resume:hover,
-.item-check:hover,
-.tag-select:hover,
-.btn-secondary:hover:not(:disabled),
-.btn-manual:hover,
-.btn-finish:hover:not(:disabled),
-.btn-reset:hover {
-  border-color: var(--text);
-}
-
-/* The filled buttons keep their own darker edge rather than the grey, so the
-   family still reads as one set. */
-.btn-primary,
-.btn-add,
-.btn-primary:hover:not(:disabled),
-.btn-add:hover {
-  border-color: var(--accent-strong);
-}
-
-/* A tagged pill states its tag at full strength; it is an outline too. The
-   width has to be restated here: `.is-tagged .tag-select` earlier in this
-   sheet sets the whole `border` shorthand, and its higher specificity beats
-   the bare `.tag-select` above whatever the source order. */
-.is-tagged .tag-select { border: 1.5px solid var(--tag); }
-
-/* The divider inside the segmented control matches the box around it. */
-.seg + .seg { border-left: 1.5px solid var(--btn-line); }
-
-/* Badges are labels rather than controls, so they stay a hair lighter —
-   but still a real edge, not a suggestion of one. */
-.badge { border: 1px solid color-mix(in srgb, currentColor 48%, transparent); }
-
-/* --- heavy outlines -----------------------------------------------------
-   Asked for three times, each of my answers lighter than the brief. Taking it
-   literally now: 3px, in a colour dark enough to contrast with the ground
-   rather than blend into it.
-
-   Interactive things get the full 3px. Panels and the rules between rows get
-   2px, so structure stays readable without competing with the controls — if
-   those should be 3px too it is one number. */
-
-:root {
-  /* Near-black rather than a grey. Nothing lighter has survived review. */
-  --btn-line: #3d362e;
-  --border: #bdb3a4;
-  --hairline: #bdb3a4;
-}
-
-.item-delete,
-.item-resume,
-.item-check,
-.tag-select,
 .btn,
 .btn-add,
 .btn-manual,
@@ -780,6 +262,10 @@ body {
 .btn-cal-option,
 .btn-progress,
 .btn-complete,
+.item-delete,
+.item-resume,
+.item-check,
+.tag-select,
 .segmented,
 .capture-name,
 .manual-name,
@@ -793,79 +279,271 @@ body {
 .manual input,
 .manual select,
 .assignment-form select {
-  border-width: 3px;
-  border-style: solid;
-  border-color: var(--btn-line);
+  border: 1.5px solid var(--btn-line);
+  border-radius: 9px;
 }
 
-/* The square controls were sized for a hairline; 3px of border eats into a
-   28px box, so give the glyph its room back. */
 .item-delete,
 .item-resume,
 .item-check {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
+  background: var(--surface);
+  color: var(--text);
 }
 
-/* Filled buttons state the same weight in their own colour, so the set still
-   reads as one family. */
-.btn-primary,
+.item-delete:hover { background: var(--accent-soft); border-color: var(--alert); color: var(--alert); }
+.item-check:hover,
+.item-resume:hover { background: var(--success-soft); border-color: var(--success-strong); color: var(--success-strong); }
+
+.btn,
 .btn-add,
-.btn-primary:hover:not(:disabled),
-.btn-add:hover {
+.btn-manual,
+.btn-finish,
+.btn-reset { font-weight: 650; }
+
+.btn-primary,
+.btn-add {
+  background: var(--accent);
   border-color: var(--accent-strong);
+  color: #fff;
 }
 
-.is-tagged .tag-select { border: 3px solid var(--tag); }
+.btn-primary:hover:not(:disabled),
+.btn-add:hover { background: var(--accent-strong); }
 
+.btn-secondary,
+.btn-manual,
+.btn-finish,
+.btn-reset {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btn-secondary:hover:not(:disabled),
+.btn-manual:hover,
+.btn-finish:hover:not(:disabled),
+.btn-reset:hover { background: var(--accent-soft); }
+
+.btn:disabled,
+.btn-finish:disabled { opacity: 0.4; }
+
+.tag-select { background: var(--surface); color: var(--text); font-weight: 600; }
+.is-tagged .tag-select { border: 1.5px solid var(--tag); }
+
+.segmented { background: var(--surface); padding: 2px; gap: 0; }
+.seg + .seg { border-left: 1.5px solid var(--btn-line); }
+.seg span { font-weight: 600; color: var(--muted); }
+.seg input:checked + span { color: #fff; }
+
+/* The two once-a-day actions take the editorial treatment: an outlined
+   rectangle in spaced caps, which is what they are. */
 [data-action="generate"],
 [data-action="print-summary"] {
-  border-width: 3px;
+  padding: 15px 30px;
+  border: 1.5px solid var(--text);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
 }
 
-.seg + .seg { border-left: 3px solid var(--btn-line); }
+[data-action="generate"]:hover,
+[data-action="print-summary"]:hover { background: var(--text); color: var(--bg); }
 
-/* Labels, not controls — heavy enough to see, lighter than a button so a row
-   does not read as four buttons in a row. */
-.badge { border: 2px solid color-mix(in srgb, currentColor 65%, transparent); }
+/* Air between any two buttons that sit together. */
+.timer-controls { gap: 14px; margin-top: 4px; }
+.reset-actions { gap: 14px; }
+.cal-choice { gap: 12px; margin-top: 14px; }
+.progress-back { gap: 16px; }
+.capture { gap: 14px; }
+.manual { gap: 12px; }
+.tag-form { gap: 16px; }
 
-/* Structure: visible, but one step below the controls. */
-.panel { border-width: 2px; border-color: var(--border); }
+.page-actions { padding: 34px var(--gap) 10px; gap: 12px; }
+.reset-zone { padding: 28px var(--gap) 34px; }
 
-.item,
-.log-row,
-.assignment,
-.tag-row,
-.item:hover,
-.log-row:hover,
-.assignment:hover,
-.tag-row:hover,
-.item.is-selected {
-  border-bottom-width: 2px;
-  border-bottom-color: var(--hairline);
+.capture-name:focus-visible,
+.tag-name:focus-visible,
+.progress-note:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
-.items > .item:last-child,
-.items > .log-row:last-child,
-.assignment-list > .assignment:last-child,
-.tag-list > .tag-row:last-child {
-  border-bottom-color: transparent;
+/* --- secondary text ------------------------------------------------------
+   Nothing here is decoration — a duration, a count and a status are all data.
+   They sit below the name in weight, not below it in legibility. */
+
+.item-time,
+.log-duration,
+.assignment-when,
+.tag-row-count,
+.asg-total-counts,
+.timer-empty,
+.placeholder,
+.capture-hint,
+.manual-hint,
+.cal-hint { color: var(--muted); }
+
+.item-time,
+.log-duration { font-size: 12.5px; font-weight: 600; color: var(--text); }
+
+.log-done {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--success-strong);
 }
+
+.tag-row-count { font-size: 12px; font-weight: 600; }
+
+.badge {
+  padding: 3px 8px;
+  border: 1.5px solid color-mix(in srgb, currentColor 70%, transparent);
+  border-radius: 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* --- the timer, as the hero ---------------------------------------------- */
+
+.timer { gap: 22px; }
+
+.timer-digital {
+  font-size: 76px;
+  font-weight: 250;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.timer-name { font-size: 17px; font-weight: 650; letter-spacing: -0.005em; }
+
+.timer-empty {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.clock { width: 148px; height: 148px; }
+.clock-face { fill: var(--surface); stroke: var(--line); }
+
+/* --- stat tiles ----------------------------------------------------------
+   A small label over a large light number — the one idea worth lifting whole
+   from a dashboard. */
 
 .total,
-.asg-total,
-.asg-total[data-kind] {
-  border-width: 2px;
-  border-color: var(--border);
+.asg-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px 22px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
 }
 
-.panel-title { border-bottom: 2px solid var(--hairline); }
-.statusbar { border-top: 2px solid var(--border); }
-.topbar { border-bottom: 2px solid var(--border); }
+.total-label,
+.asg-total-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 
-/* Dimming and bold outlines pull against each other. The controls stay very
-   slightly back, not hidden. */
-:root { --dim: 0.88; }
+.total-value {
+  font-size: 28px;
+  font-weight: 350;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.asg-total-counts { font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.asg-total-counts strong {
+  font-size: 25px;
+  font-weight: 350;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* Fully tinted tiles were the loudest thing on the page; the colour moves to
+   the label so the four read as one row. */
+.asg-total[data-kind] { background: var(--surface); border-color: var(--border); }
+.asg-total[data-kind] .asg-total-label { color: var(--type-ink); }
+
+/* --- one accent ----------------------------------------------------------
+   The cyan page theme retires: one palette across the app, with the three
+   assignment types keeping their colours only where they identify something. */
+
+.page[data-page="assignments"],
+.page[data-page="progress"] {
+  --bg: #f4f2ef;
+  --surface: #ffffff;
+  --text: #16130f;
+  --muted: #63594f;
+  --btn-line: #3d362e;
+  --line: #b3a795;
+  --border: #c7bcaa;
+  --accent: #d9702f;
+  --accent-strong: #ae5219;
+  --accent-soft: #fbf1ea;
+  --glow: none;
+}
+
+.page[data-page="assignments"] .panel-title,
+.page[data-page="progress"] .panel-title { color: var(--muted); }
+
+/* --- reminders ----------------------------------------------------------- */
+
+.reminder {
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  margin-bottom: 9px;
+}
+
+.reminder > summary { padding: 14px 14px; }
+.reminder-label { font-size: 13px; font-weight: 650; }
+
+.reminder-count {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* --- status bar ---------------------------------------------------------- */
+
+.statusbar {
+  padding: 13px var(--gap);
+  border-top: 2px solid var(--border);
+  background: color-mix(in srgb, #ffffff 88%, transparent);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+/* --- progress page ------------------------------------------------------- */
+
+.progress-head { padding-bottom: 18px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+.progress-name { font-size: 23px; font-weight: 650; letter-spacing: -0.015em; }
+.progress-percent { font-size: 28px; font-weight: 350; letter-spacing: -0.02em; }
+.progress-track { border: 1.5px solid var(--line); }
+
+.field-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
 
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
@@ -881,6 +559,5 @@ body {
   }
 
   .tagline { display: none; }
-
   .tabs { justify-content: center; }
 }
