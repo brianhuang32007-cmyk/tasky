@@ -23,7 +23,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ENTRY = ROOT / "src" / "main.js"
 
-LINK_TAG = '<link rel="stylesheet" href="styles.css">'
+LINK_TAGS = (
+    '<link rel="stylesheet" href="styles.css">',
+    '<link rel="stylesheet" href="styles.v2.css">',
+)
 SCRIPT_TAG = '<script type="module" src="src/main.js"></script>'
 
 IMPORT_RE = re.compile(
@@ -51,7 +54,7 @@ def inline_module(path, seen, chunks):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--styles", default="styles.css",
+    parser.add_argument("--styles", default="styles.css,styles.v2.css",
                         help="comma-separated stylesheets, inlined in order")
     parser.add_argument("--out", default="preview.html")
     args = parser.parse_args()
@@ -69,16 +72,19 @@ def main():
         f"/* ---- {s.relative_to(ROOT)} ---- */\n{s.read_text().strip()}" for s in sheets
     )
 
-    if LINK_TAG not in html or SCRIPT_TAG not in html:
+    if SCRIPT_TAG not in html or not all(t in html for t in LINK_TAGS):
         sys.exit(
             "build_preview: index.html no longer contains the expected stylesheet "
-            "or module tag. Update LINK_TAG/SCRIPT_TAG in this script."
+            "or module tags. Update LINK_TAGS/SCRIPT_TAG in this script."
         )
 
     chunks = []
     inline_module(ENTRY, set(), chunks)
 
-    html = html.replace(LINK_TAG, f"<style>\n{css}\n</style>")
+    # The first link becomes the inlined styles; the rest simply go.
+    html = html.replace(LINK_TAGS[0], f"<style>\n{css}\n</style>")
+    for tag in LINK_TAGS[1:]:
+        html = html.replace(tag, "")
     html = html.replace(SCRIPT_TAG, "<script>\n" + "\n\n".join(chunks) + "\n</script>")
 
     out_path.write_text(html)
