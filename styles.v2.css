@@ -614,6 +614,197 @@ body {
 .manual .unit,
 .char-count { font-size: 12px; color: var(--muted); }
 
+/* --- glass and motion ---------------------------------------------------
+   A futuristic glass treatment laid over the existing layout. Nothing here
+   moves, renames or restructures anything — every panel, column and control
+   stays where it was; only their material changes.
+
+   The hard part is that glassmorphism and legibility pull in opposite
+   directions, and the five rounds before this one were all about legibility.
+   So the rules are: the animated light shows through the *panels*, never
+   through the things carrying text at small sizes. Rows and controls stay
+   near-opaque, and the AA audit is re-run against the composited result. */
+
+:root {
+  --bg: #f7f2ea;
+
+  /* Three depths of glass. Panels float, rows sit on them, controls sit on
+     rows — each step more opaque than the last, so text always lands on
+     something solid enough to read against. */
+  --glass: color-mix(in srgb, #ffffff 62%, transparent);
+  --glass-row: color-mix(in srgb, #ffffff 86%, transparent);
+  --glass-edge: color-mix(in srgb, #ffffff 78%, transparent);
+
+  --lift:
+    0 20px 44px -22px rgba(124, 74, 18, 0.38),
+    0 6px 16px -10px rgba(124, 74, 18, 0.22);
+
+  --radius: 20px;
+}
+
+/* The base colour moves to the root element so the animated layers below can
+   sit behind the body's content and still be picked up by backdrop-filter. */
+html { background: var(--bg); }
+
+body {
+  position: relative;
+  background: transparent;
+}
+
+/* Two counter-drifting fields of warm light. Both loop seamlessly — the last
+   keyframe matches the first — so the motion never snaps back. Heavily
+   blurred and slow enough to read as weather rather than as animation. */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: -28%;
+  z-index: -1;
+  pointer-events: none;
+  will-change: transform;
+}
+
+body::before {
+  background:
+    radial-gradient(38% 44% at 22% 26%, #f5a623 0%, transparent 62%),
+    radial-gradient(34% 40% at 78% 20%, #ffd36b 0%, transparent 60%),
+    radial-gradient(44% 50% at 64% 80%, #ef8b2c 0%, transparent 62%),
+    radial-gradient(30% 36% at 12% 78%, #ffe6a0 0%, transparent 60%);
+  filter: blur(72px) saturate(1.2);
+  opacity: 0.5;
+  animation: tasky-drift-a 38s ease-in-out infinite;
+}
+
+body::after {
+  background:
+    radial-gradient(30% 34% at 86% 60%, #ffc14d 0%, transparent 58%),
+    radial-gradient(26% 32% at 34% 10%, #ff9f43 0%, transparent 56%),
+    radial-gradient(28% 30% at 50% 50%, #fff0c4 0%, transparent 58%);
+  filter: blur(86px);
+  opacity: 0.42;
+  animation: tasky-drift-b 53s ease-in-out infinite;
+}
+
+@keyframes tasky-drift-a {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  33%  { transform: translate3d(3.5%, -2.5%, 0) scale(1.13) rotate(5deg); }
+  66%  { transform: translate3d(-2.5%, 3.5%, 0) scale(1.05) rotate(-4deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+
+@keyframes tasky-drift-b {
+  0%   { transform: translate3d(0, 0, 0) scale(1.1) rotate(0deg); }
+  50%  { transform: translate3d(-4.5%, 2.5%, 0) scale(1) rotate(-7deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1.1) rotate(0deg); }
+}
+
+/* Motion is decoration here, so it is the first thing to go. */
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after { animation: none; }
+}
+
+/* --- floating panels ----------------------------------------------------
+   Smoked glass: translucent, frosted, with an illuminated top edge and a warm
+   shadow underneath. The edge is light rather than dark — on glass the lift
+   comes from the shadow and the highlight, not from an outline. */
+
+.panel,
+.total,
+.asg-total {
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius);
+  background: var(--glass);
+  backdrop-filter: blur(26px) saturate(1.55);
+  -webkit-backdrop-filter: blur(26px) saturate(1.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), var(--lift);
+}
+
+.panel-timer { background: var(--glass); }
+
+.total,
+.asg-total {
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8),
+              0 10px 24px -16px rgba(124, 74, 18, 0.32);
+}
+
+.panel-title { border-bottom: 1px solid var(--glass-edge); }
+
+/* --- the layer above ----------------------------------------------------
+   Rows and controls are where the text lives, so they stay near-opaque. The
+   glass is a backdrop for them, not a material they are made of. */
+
+.item,
+.log-row,
+.assignment,
+.tag-row,
+.reminder {
+  background: var(--glass-row);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 1px 2px rgba(124, 74, 18, 0.06);
+}
+
+.item.is-selected {
+  background: color-mix(in srgb, var(--accent-soft) 88%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent), 0 2px 6px -2px rgba(124, 74, 18, 0.18);
+}
+
+.assignment { box-shadow: inset 3px 0 0 var(--type, var(--accent)), 0 1px 2px rgba(124, 74, 18, 0.06); }
+.tag-row { box-shadow: inset 3px 0 0 var(--tag), 0 1px 2px rgba(124, 74, 18, 0.06); }
+
+.item.is-tagged,
+.log-row.is-tagged { box-shadow: inset 3px 0 0 var(--tag), 0 1px 2px rgba(124, 74, 18, 0.06); }
+
+.item.is-selected.is-tagged {
+  box-shadow: inset 3px 0 0 var(--accent), 0 2px 6px -2px rgba(124, 74, 18, 0.18);
+}
+
+/* Fields and buttons: solid, so letterforms never sit on moving light. */
+.capture-name,
+.manual-name,
+.goal-input,
+.tag-name,
+.assignment-name,
+.assignment-desc,
+.assignment-time,
+.progress-note,
+.subtask-name,
+.manual input,
+.manual select,
+.assignment-form select,
+.tag-select,
+.segmented,
+.item-delete,
+.item-resume,
+.item-check,
+.btn-secondary,
+.btn-manual,
+.btn-finish,
+.btn-reset { background: #fff; }
+
+/* --- glass chrome -------------------------------------------------------- */
+
+.topbar {
+  border-bottom: 1px solid var(--glass-edge);
+  background: color-mix(in srgb, #ffffff 68%, transparent);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.statusbar {
+  border-top: 1px solid var(--glass-edge);
+  background: color-mix(in srgb, #ffffff 68%, transparent);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+}
+
+.tab:hover { background: color-mix(in srgb, #ffffff 85%, transparent); }
+
+.clock-face { fill: color-mix(in srgb, #ffffff 70%, transparent); }
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */
