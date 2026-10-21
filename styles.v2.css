@@ -12,7 +12,8 @@
      use opacity                               ->  translucent cards over a
                                                    tinted ground, and secondary
                                                    controls that recede
-     more like a dashboard                     ->  the tabs become a left rail
+     more like a dashboard                     ->  a slim product bar, mark left
+                                                   and nav right, sticky
      outline the buttons more                  ->  every button states an edge  */
 
 /* --- palette -------------------------------------------------------------
@@ -52,7 +53,8 @@
   /* Secondary controls recede until the row they belong to is pointed at. */
   --dim: 0.45;
 
-  --rail: 236px;
+  /* Slim: the centred crest cost 128px of vertical space on every page. */
+  --topbar-h: 66px;
 }
 
 /* A ground with something in it, so the translucency has something to reveal.
@@ -71,90 +73,88 @@ body {
 }
 
 /* --- the dashboard shell -------------------------------------------------
-   The header becomes a left rail, with no markup change: the body is a
-   two-column grid, the header takes column one across every row, and the
-   pages and status bar stack down column two. */
+   A slim top bar, the way an application states itself: the mark on the left,
+   navigation on the right, one hairline under the full width. The centred
+   crest reads as a landing page; moving the mark left and the nav right is
+   most of what makes a bar read as a product instead.
 
-body {
-  display: grid;
-  grid-template-columns: var(--rail) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-}
+   Sticky, so navigation stays reachable while the review zone scrolls under
+   it — and translucent, so what passes beneath is visible rather than hidden. */
 
 .topbar {
-  grid-column: 1;
-  grid-row: 1 / -1;
-  align-self: start;
   position: sticky;
   top: 0;
-  height: 100vh;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: 0;
-  padding: 30px 20px;
-  border-bottom: 0;
-  border-right: 1px solid var(--border);
-  background: color-mix(in srgb, #ffffff 42%, transparent);
+  z-index: 20;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 0 var(--gap);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, #ffffff 72%, transparent);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
 }
 
-.page { grid-column: 2; grid-row: 1; }
-.statusbar { grid-column: 2; grid-row: 2; }
+/* Mark and caption on one line, divided by a rule rather than a bullet. */
+.brand {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
 
-/* The brand stops being a centred crest and becomes a mark at the head of a
-   rail: mascot and wordmark on one line, caption beneath, both left-aligned. */
-.brand { align-items: flex-start; gap: 6px; }
-.brand-row { gap: 11px; }
+.brand-row { gap: 10px; }
 
-.mascot { width: 34px; height: 34px; }
+.mascot { width: 30px; height: 30px; }
 
 .wordmark {
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.2em;
   /* Tracking leaves a gap after the last letter; pull it back so the lockup
-     is optically aligned rather than mathematically aligned. */
+     sits where the eye expects it to. */
   margin-right: -0.2em;
   text-transform: uppercase;
   color: var(--text);
 }
 
 .tagline {
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
   text-align: left;
   font-size: 10.5px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
   color: var(--muted);
   opacity: 0.8;
 }
 
-/* Rail navigation: full-width rows with an active bar, not pills. */
 .tabs {
-  flex-direction: column;
+  flex: none;
   flex-wrap: nowrap;
-  justify-content: flex-start;
   gap: 4px;
-  margin-top: 34px;
 }
 
+/* A soft filled pill rather than an underline: the bar already draws a line
+   under itself, and a second one directly above it reads as a mistake. */
 .tab {
-  padding: 11px 14px;
-  border-radius: 10px;
-  border-left: 2px solid transparent;
+  padding: 8px 15px;
+  border-radius: 9px;
   font-size: 13.5px;
   font-weight: 550;
   color: var(--muted);
 }
 
 .tab:hover {
-  background: color-mix(in srgb, var(--text) 4%, transparent);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
   color: var(--text);
 }
 
 .tab.is-active {
   background: var(--accent-soft);
-  border-left-color: var(--accent);
   color: var(--accent-strong);
   font-weight: 650;
 }
@@ -573,34 +573,19 @@ body {
 }
 
 /* --- narrow windows ------------------------------------------------------
-   Below the rail's comfortable width it folds back into the stacked top bar
-   the base sheet already lays out, so nothing here has to re-solve mobile. */
+   Once the bar cannot hold the mark and the nav on one line, it stacks and
+   centres. The caption goes first: it is the only part that is decoration. */
 
-@media (max-width: 900px) {
-  body {
-    display: block;
-    min-height: 100vh;
-  }
-
+@media (max-width: 860px) {
   .topbar {
-    position: static;
     height: auto;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px var(--gap);
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .brand { align-items: center; }
-  .tagline { text-align: center; }
-
-  .tabs {
-    flex-direction: row;
+    flex-wrap: wrap;
     justify-content: center;
-    margin-top: 16px;
+    gap: 12px;
+    padding: 14px var(--gap);
   }
 
-  .tab { border-left: 0; border-bottom: 2px solid transparent; }
-  .tab.is-active { border-left: 0; border-bottom-color: var(--accent); }
+  .tagline { display: none; }
+
+  .tabs { justify-content: center; }
 }
