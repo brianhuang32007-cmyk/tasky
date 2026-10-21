@@ -805,6 +805,50 @@ body::after {
 
 .clock-face { fill: color-mix(in srgb, #ffffff 70%, transparent); }
 
+/* --- filled buttons -----------------------------------------------------
+   Two problems, one fix.
+
+   The bug: the legibility pass set .btn-primary's background at the same
+   specificity as the [data-action] rule that had made Print and Generate
+   outlined. The fill won, the dark text did not change with it, and those two
+   ended up near-black on #ae5219 — 3.55:1, a failure I introduced.
+
+   The complaint: #ae5219 under white text passes at 5.22:1 but reads heavy.
+
+   Light amber with dark ink answers both, and is what the reference itself
+   does: #16130f on this gradient's darkest stop is about 9.7:1, nearly double
+   what white on the old fill managed, while looking considerably lighter.
+   The deeper amber border keeps the edge defined. */
+
+.btn-primary,
+.btn-add,
+.btn[data-action="generate"],
+.btn[data-action="print-summary"],
+.seg input:checked + span {
+  background: linear-gradient(180deg, #ffd27e 0%, #f7ae38 100%);
+  border-color: #dd9826;
+  color: var(--text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 10px -4px rgba(176, 108, 18, 0.5);
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-add:hover,
+.btn[data-action="generate"]:hover,
+.btn[data-action="print-summary"]:hover {
+  background: linear-gradient(180deg, #ffc661 0%, #efa128 100%);
+  border-color: #c9871c;
+  color: var(--text);
+}
+
+/* The segmented control's chosen half is small, so it carries the flat amber
+   rather than the gradient — a gradient inside a 24px pill just muddies it. */
+.seg input:checked + span {
+  background: #f9b23f;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */
