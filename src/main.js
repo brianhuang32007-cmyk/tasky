@@ -11,6 +11,10 @@ import { emptyState, load, save, subscribe } from './storage.js';
 import { buildDailySummary, dailySummaryFilename } from './report.js';
 import { TAG_COLOURS, TAG_NAME_LIMIT, colourHex } from './tags.js';
 import {
+  isConfigured, cleanAuthRedirect, currentUser, onAuthChange,
+  signIn, signUp, signInWithGoogle, signOut,
+} from './supabase.js';
+import {
   formatClock,
   formatCompact,
   formatHuman,
@@ -48,6 +52,14 @@ const nameInput = form.elements.name;
 const hint = document.querySelector('[data-region="capture-hint"]');
 const itemsRegion = document.querySelector('[data-region="items"]');
 const statusRegion = document.querySelector('[data-region="status"]');
+const accountLink = document.querySelector('[data-region="account-link"]');
+const accountUnset = document.querySelector('[data-region="account-unset"]');
+const accountSignedOut = document.querySelector('[data-region="account-signed-out"]');
+const accountSignedIn = document.querySelector('[data-region="account-signed-in"]');
+const accountEmail = document.querySelector('[data-region="account-email"]');
+const accountMsg = document.querySelector('[data-region="account-msg"]');
+const signinForm = document.querySelector('[data-form="signin"]');
+
 const tagForm = document.querySelector('[data-form="tag"]');
 const tagHint = document.querySelector('[data-region="tag-hint"]');
 const tagsRegion = document.querySelector('[data-region="tags"]');
@@ -1362,6 +1374,7 @@ function render() {
 
 function repaint() {
   renderItems();
+  renderAccount();
   renderTags();
   renderTimerItem();
   renderControls();
@@ -2862,6 +2875,83 @@ function printDailySummary() {
   return state.log.length;
 }
 
+// --- account ---------------------------------------------------------------
+//
+// Session state lives here rather than in `state`: it belongs to the person,
+// not to the day's data, and storage.js must keep owning everything that is
+// saved. Nothing in the task or assignment model knows a user exists yet.
+
+let authUser = null;
+
+function accountNote(text, kind = '') {
+  accountMsg.textContent = text;
+  accountMsg.className = kind ? `account-msg ${kind}` : 'account-msg';
+  accountMsg.hidden = !text;
+}
+
+function renderAccount() {
+  const ready = isConfigured();
+
+  accountUnset.hidden = ready;
+  accountSignedOut.hidden = !ready || Boolean(authUser);
+  accountSignedIn.hidden = !ready || !authUser;
+
+  if (authUser) accountEmail.textContent = authUser.email ?? 'your account';
+
+  // The link is the only part of this visible from every page, so it carries
+  // the state: an invitation when signed out, an identity when signed in.
+  accountLink.textContent = authUser ? (authUser.email ?? 'Account') : 'Sign in';
+  accountLink.classList.toggle('is-signed-in', Boolean(authUser));
+}
+
+/** Shared by both buttons on the form, so neither can skip the validation. */
+function credentials() {
+  const email = signinForm.elements.email.value.trim();
+  const password = signinForm.elements.password.value;
+
+  if (!email || !password) {
+    accountNote('Enter an email and a password first.', 'is-error');
+    return null;
+  }
+  return { email, password };
+}
+
+async function runAuth(label, work) {
+  accountNote(`${label}…`);
+  const { error } = await work();
+  if (error) accountNote(error, 'is-error');
+  return !error;
+}
+
+signinForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const creds = credentials();
+  if (!creds) return;
+
+  // onAuthChange repaints on success, so nothing is reported here but failure.
+  if (await runAuth('Signing in', () => signIn(creds.email, creds.password))) {
+    accountNote('');
+  }
+});
+
+document.querySelector('[data-action="sign-up"]').addEventListener('click', async () => {
+  const creds = credentials();
+  if (!creds) return;
+
+  // Supabase confirms by email by default, so a new account is not a session.
+  if (await runAuth('Creating your account', () => signUp(creds.email, creds.password))) {
+    accountNote('Check your email for a confirmation link.', 'is-ok');
+  }
+});
+
+document.querySelector('[data-action="sign-in-google"]').addEventListener('click', () => {
+  runAuth('Opening Google', signInWithGoogle);
+});
+
+document.querySelector('[data-action="sign-out"]').addEventListener('click', async () => {
+  if (await runAuth('Signing out', signOut)) accountNote('');
+});
+
 // --- pages ----------------------------------------------------------------
 
 // The hash is the source of truth for which page is showing, so back, forward,
@@ -2869,8 +2959,11 @@ function printDailySummary() {
 // a view change rather than a page load, which is the point: a page load would
 // run reconcileOpenRun() and silently pause a running timer every time you
 // looked at another page.
-const PAGES = ['tasks', 'assignments', 'progress'];
-const PAGE_TITLES = { tasks: 'My Tasks', assignments: 'My Assignments', progress: 'Progress' };
+const PAGES = ['tasks', 'assignments', 'progress', 'account'];
+const PAGE_TITLES = {
+  tasks: 'My Tasks', assignments: 'My Assignments',
+  progress: 'Progress', account: 'Account',
+};
 
 // Progress is a sub-page of Assignments, so that tab stays lit while on it.
 const TAB_FOR = { tasks: 'tasks', assignments: 'assignments', progress: 'assignments' };
@@ -2915,6 +3008,13 @@ function renderPage() {
 // A full render, not just renderPage: leaving the progress page has to rebuild
 // the assignments list so the row reflects the progress just edited.
 addEventListener('hashchange', render);
+
+// A Google round trip comes back with the session in the URL, which would
+// otherwise be read as a route. Cleared before the router ever sees it.
+cleanAuthRedirect();
+
+onAuthChange((user) => { authUser = user; repaint(); });
+currentUser().then((user) => { authUser = user; repaint(); });
 
 reconcileOpenRun();
 

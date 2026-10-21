@@ -1049,6 +1049,88 @@ body:has(.page[data-page="progress"]:not([hidden]))::after { opacity: 0.64; }
   background: color-mix(in srgb, var(--type-other) 32%, #fff);
 }
 
+/* --- account ------------------------------------------------------------ */
+
+.topbar-right { display: flex; align-items: center; gap: 18px; }
+
+.account-link {
+  flex: none;
+  padding: 8px 15px;
+  border: 1.5px solid var(--btn-line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-link:hover { background: var(--accent-soft); border-color: var(--text); }
+
+.account-link.is-signed-in {
+  border-color: var(--fill-edge);
+  background: color-mix(in srgb, var(--fill-top) 45%, #fff);
+}
+
+.account-form,
+.account-signed-in { max-width: 420px; }
+
+.account-lead { margin: 0 0 18px; font-size: 14px; }
+.account-note { margin: 0 0 18px; font-size: 13px; color: var(--muted); }
+
+.account-fields { display: flex; flex-direction: column; gap: 6px; }
+
+.account-input {
+  margin-bottom: 12px;
+  padding: 11px 13px;
+  border: 1.5px solid var(--btn-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.account-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.account-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 6px; }
+
+/* A rule with the word sitting in a gap in it. */
+.account-or {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 24px 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.account-or::before,
+.account-or::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: var(--line);
+}
+
+.account-google { display: flex; align-items: center; gap: 10px; }
+.google-mark { width: 17px; height: 17px; flex: none; }
+
+.account-msg { margin: 18px 0 0; font-size: 13px; color: var(--muted); }
+.account-msg.is-error { color: var(--alert); font-weight: 600; }
+.account-msg.is-ok { color: var(--success-strong); font-weight: 600; }
+
+@media (max-width: 860px) {
+  .topbar-right { flex-wrap: wrap; justify-content: center; gap: 12px; }
+}
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */
