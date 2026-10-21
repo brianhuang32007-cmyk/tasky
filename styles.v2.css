@@ -751,6 +751,122 @@ body {
    but still a real edge, not a suggestion of one. */
 .badge { border: 1px solid color-mix(in srgb, currentColor 48%, transparent); }
 
+/* --- heavy outlines -----------------------------------------------------
+   Asked for three times, each of my answers lighter than the brief. Taking it
+   literally now: 3px, in a colour dark enough to contrast with the ground
+   rather than blend into it.
+
+   Interactive things get the full 3px. Panels and the rules between rows get
+   2px, so structure stays readable without competing with the controls — if
+   those should be 3px too it is one number. */
+
+:root {
+  /* Near-black rather than a grey. Nothing lighter has survived review. */
+  --btn-line: #3d362e;
+  --border: #bdb3a4;
+  --hairline: #bdb3a4;
+}
+
+.item-delete,
+.item-resume,
+.item-check,
+.tag-select,
+.btn,
+.btn-add,
+.btn-manual,
+.btn-finish,
+.btn-reset,
+.btn-cal,
+.btn-cal-option,
+.btn-progress,
+.btn-complete,
+.segmented,
+.capture-name,
+.manual-name,
+.goal-input,
+.tag-name,
+.assignment-name,
+.assignment-desc,
+.assignment-time,
+.progress-note,
+.subtask-name,
+.manual input,
+.manual select,
+.assignment-form select {
+  border-width: 3px;
+  border-style: solid;
+  border-color: var(--btn-line);
+}
+
+/* The square controls were sized for a hairline; 3px of border eats into a
+   28px box, so give the glyph its room back. */
+.item-delete,
+.item-resume,
+.item-check {
+  width: 32px;
+  height: 32px;
+}
+
+/* Filled buttons state the same weight in their own colour, so the set still
+   reads as one family. */
+.btn-primary,
+.btn-add,
+.btn-primary:hover:not(:disabled),
+.btn-add:hover {
+  border-color: var(--accent-strong);
+}
+
+.is-tagged .tag-select { border: 3px solid var(--tag); }
+
+[data-action="generate"],
+[data-action="print-summary"] {
+  border-width: 3px;
+}
+
+.seg + .seg { border-left: 3px solid var(--btn-line); }
+
+/* Labels, not controls — heavy enough to see, lighter than a button so a row
+   does not read as four buttons in a row. */
+.badge { border: 2px solid color-mix(in srgb, currentColor 65%, transparent); }
+
+/* Structure: visible, but one step below the controls. */
+.panel { border-width: 2px; border-color: var(--border); }
+
+.item,
+.log-row,
+.assignment,
+.tag-row,
+.item:hover,
+.log-row:hover,
+.assignment:hover,
+.tag-row:hover,
+.item.is-selected {
+  border-bottom-width: 2px;
+  border-bottom-color: var(--hairline);
+}
+
+.items > .item:last-child,
+.items > .log-row:last-child,
+.assignment-list > .assignment:last-child,
+.tag-list > .tag-row:last-child {
+  border-bottom-color: transparent;
+}
+
+.total,
+.asg-total,
+.asg-total[data-kind] {
+  border-width: 2px;
+  border-color: var(--border);
+}
+
+.panel-title { border-bottom: 2px solid var(--hairline); }
+.statusbar { border-top: 2px solid var(--border); }
+.topbar { border-bottom: 2px solid var(--border); }
+
+/* Dimming and bold outlines pull against each other. The controls stay very
+   slightly back, not hidden. */
+:root { --dim: 0.88; }
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */
