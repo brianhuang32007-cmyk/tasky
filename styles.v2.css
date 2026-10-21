@@ -955,6 +955,58 @@ body:has(.page[data-page="progress"]:not([hidden])) .tab.is-active {
   border-color: var(--fill-edge-hi);
 }
 
+/* --- re-applying the glass over the base sheet's page rules -------------
+   styles.css scopes several rules to `.page[data-page="assignments"] .panel`
+   and friends, which is specificity (0,3,0) against this layer's (0,1,0). Its
+   `box-shadow: var(--glow)` therefore won, and since this layer sets --glow to
+   none for a flat look, every panel on Assignments and Progress resolved to
+   `box-shadow: none` — no lift, no illuminated edge, no glass. The background
+   and the blur were applying all along; the thing that makes them read as
+   glass was being cancelled.
+
+   Restated here at matching specificity. Each rule replaces a specific base
+   rule rather than raising --glow, because --glow is also used for button
+   hover and focus rings, where a full panel lift would be far too heavy. */
+
+.page[data-page="assignments"] .panel,
+.page[data-page="progress"] .panel {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), var(--lift);
+}
+
+.page[data-page="assignments"] .btn-primary:hover:not(:disabled),
+.page[data-page="assignments"] .btn-manual:hover,
+.page[data-page="progress"] .btn-primary:hover:not(:disabled),
+.page[data-page="progress"] .btn-manual:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 10px -4px var(--fill-glow);
+}
+
+.page[data-page="assignments"] input:focus-visible,
+.page[data-page="assignments"] textarea:focus-visible,
+.page[data-page="progress"] input:focus-visible,
+.page[data-page="progress"] textarea:focus-visible {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* The totals tiles were solid white for the same reason: `.asg-total[data-kind]`
+   is (0,2,0) and beat the glass rule. */
+.asg-total[data-kind] {
+  background: var(--glass);
+  backdrop-filter: blur(26px) saturate(1.55);
+  -webkit-backdrop-filter: blur(26px) saturate(1.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8),
+              0 10px 24px -16px rgba(16, 92, 78, 0.3);
+}
+
+/* Teal reads lighter than amber at the same strength, so the ground needs a
+   little more of it to land with the same presence. */
+body:has(.page[data-page="assignments"]:not([hidden]))::before,
+body:has(.page[data-page="progress"]:not([hidden]))::before { opacity: 0.62; }
+
+body:has(.page[data-page="assignments"]:not([hidden]))::after,
+body:has(.page[data-page="progress"]:not([hidden]))::after { opacity: 0.5; }
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */
