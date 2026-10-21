@@ -62,13 +62,6 @@
    shape. */
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(1100px 620px at 14% -8%,
-      color-mix(in srgb, var(--accent) 9%, transparent), transparent 60%),
-    radial-gradient(900px 560px at 92% 8%,
-      color-mix(in srgb, #7a95b8 9%, transparent), transparent 62%),
-    var(--bg);
-  background-attachment: fixed;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
@@ -898,6 +891,14 @@ body::after {
   --fill-bottom-hi: #45c7ae;
   --fill-edge-hi: #2a9a84;
 
+  /* The base sheet gives these two pages `background: var(--bg)` so the old
+     cyan ground would reach the status bar instead of stopping against the
+     warm body. With the animated layers now fixed behind everything, that is
+     an opaque lid over them — which is why the hue showed only in the thin
+     strips above and below this element. Tasks has no such rule, which is
+     exactly why that page looked right. */
+  background: transparent;
+
   --glass-edge: color-mix(in srgb, #ffffff 78%, transparent);
   --glass: color-mix(in srgb, #ffffff 62%, transparent);
   --glass-row: color-mix(in srgb, #ffffff 86%, transparent);
@@ -1017,6 +1018,36 @@ body:has(.page[data-page="progress"]:not([hidden]))::before { opacity: 0.8; }
 
 body:has(.page[data-page="assignments"]:not([hidden]))::after,
 body:has(.page[data-page="progress"]:not([hidden]))::after { opacity: 0.64; }
+
+/* --- the assignment-type segments --------------------------------------
+   Solid #06b6d4, #a855f7 and #10b981 as fills read heavy, and purple was the
+   weakest of the three at 4.60:1 under dark text. A light tint of the same
+   hue with the hue on the border instead carries the identity just as
+   clearly, looks considerably lighter, and lands between 12:1 and 13.6:1.
+
+   Same formula as the primary buttons: light fill, dark ink, coloured edge. */
+
+.assignment-form .seg input[value="assignment"]:checked + span,
+.assignment-form .seg input[value="event"]:checked + span,
+.assignment-form .seg input[value="other"]:checked + span {
+  color: var(--text);
+  box-shadow: inset 0 0 0 1.5px var(--seg-edge);
+}
+
+.assignment-form .seg input[value="assignment"]:checked + span {
+  --seg-edge: #0e7490;
+  background: color-mix(in srgb, var(--type-assignment) 32%, #fff);
+}
+
+.assignment-form .seg input[value="event"]:checked + span {
+  --seg-edge: #7e22ce;
+  background: color-mix(in srgb, var(--type-event) 32%, #fff);
+}
+
+.assignment-form .seg input[value="other"]:checked + span {
+  --seg-edge: #047857;
+  background: color-mix(in srgb, var(--type-other) 32%, #fff);
+}
 
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
