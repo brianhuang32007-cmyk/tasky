@@ -572,6 +572,125 @@ body {
   letter-spacing: 0.14em;
 }
 
+/* --- definition pass ----------------------------------------------------
+   The first cut traded too much contrast for calm: rows had no visible line
+   between them and the per-row controls read as smudges rather than buttons.
+   Quiet is not the same as unclear. Everything here raises an edge. */
+
+:root {
+  /* A solid line, not an alpha one. 14% of near-black over a near-white
+     panel computes to about #e8e6e4 — present in the inspector, absent to
+     the eye. This is the separator the list is actually built on, so it is
+     stated outright. */
+  --hairline: #d4cabb;
+  --border: #ddd6cb;
+  --btn-line: color-mix(in srgb, var(--text) 30%, transparent);
+
+  /* Still receding, but legible while receding. */
+  --dim: 0.72;
+
+  /* Slightly more solid, so borders drawn on it have something to sit on. */
+  --panel: color-mix(in srgb, #ffffff 86%, transparent);
+}
+
+/* Rows are a list, not a stack of floating pills. A large radius made each
+   row read as its own card and left the separator with nothing to do; a small
+   one lets the rule between rows carry the structure instead. */
+.item,
+.log-row,
+.assignment,
+.tag-row,
+.item.is-selected {
+  border-radius: 6px;
+}
+
+/* The separator is that structure, so nothing is allowed to erase it.
+   Selection blanked every border including the bottom one, and hover did the
+   same, which is why a selected row above a last row showed no line at all. */
+.item,
+.log-row,
+.assignment,
+.tag-row,
+.item:hover,
+.log-row:hover,
+.assignment:hover,
+.tag-row:hover,
+.item.is-selected {
+  border-bottom-color: var(--hairline);
+}
+
+.items > .item:last-child,
+.items > .log-row:last-child,
+.assignment-list > .assignment:last-child,
+.tag-list > .tag-row:last-child {
+  border-bottom-color: transparent;
+}
+
+/* Per-row controls are buttons and should look like buttons. An edge each,
+   visible at rest, filled on hover. */
+.item-delete,
+.item-resume,
+.item-check {
+  border: 1px solid var(--btn-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, #ffffff 55%, transparent);
+  color: var(--text);
+}
+
+.item-delete:hover { background: #fff; border-color: var(--alert); color: var(--alert); }
+.item-check:hover { background: #fff; border-color: var(--success-strong); color: var(--success-strong); }
+.item-resume:hover { background: #fff; border-color: var(--success-strong); }
+
+/* A dashed outline reads as a placeholder or a drop target, not a control.
+   The untagged pill is as real a control as the tagged one. */
+.tag-select {
+  border: 1px solid var(--btn-line);
+  border-style: solid;
+  background: color-mix(in srgb, #ffffff 60%, transparent);
+  color: var(--text);
+}
+
+.tag-select:hover { background: #fff; border-color: var(--text); }
+
+/* A badge tinted the same colour as the row it sits on disappears. An edge
+   keeps it readable on a filled row and on a bare one alike. */
+.badge {
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+}
+
+/* The segmented control had two options and nothing between them. */
+.segmented {
+  gap: 0;
+  border-color: var(--btn-line);
+  background: color-mix(in srgb, #ffffff 55%, transparent);
+}
+
+.seg + .seg { border-left: 1px solid var(--hairline); }
+
+/* The chosen half carries a fill *and* an edge, so which one is live reads
+   without relying on colour alone. */
+.seg input:checked + span {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+/* Fields and panels, a shade more defined for the same reason. */
+.panel { border-color: var(--border); }
+
+.capture-name,
+.manual-name,
+.goal-input,
+.tag-name,
+.assignment-name,
+.assignment-desc,
+.assignment-time,
+.progress-note,
+.subtask-name,
+.manual select,
+.manual input,
+.assignment-form select {
+  border: 1px solid var(--btn-line);
+}
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */
