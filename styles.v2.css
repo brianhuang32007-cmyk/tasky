@@ -545,6 +545,75 @@ body {
   color: var(--muted);
 }
 
+/* --- legibility pass ----------------------------------------------------
+   Measured rather than judged by eye. Every text style was sampled for its
+   computed colour, size and weight, composited against its real background,
+   and scored against WCAG AA (4.5:1 for body text, 3:1 for large). Two
+   genuine contrast failures turned up, plus a row of type sitting under 12px.
+
+   --muted at #63594f was already fine — 6.3:1 to 6.8:1 wherever it appears —
+   so the problem was size, not colour, everywhere except the two below. */
+
+/* FAILURE 1 — white on --accent (#d9702f) scored 3.33:1.
+   --accent-strong (#ae5219) scores 5.22:1 with the same hue, so the filled
+   buttons simply move one step down the ramp they already had. Hover goes
+   darker still rather than lighter, which is also the right direction for a
+   pressed state. */
+.btn-primary,
+.btn-add,
+.seg input:checked + span {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-add:hover {
+  background: #8f400d;
+  border-color: #8f400d;
+}
+
+/* FAILURE 2 — every tag colour fails as text on white: 2.27:1 (yellow) to
+   4.41:1 (grey). Darkening the ink 35% toward black puts all seven between
+   4.96:1 and 8.36:1 while leaving the hue recognisable. The border keeps the
+   pure colour, so the tag still identifies itself at full strength — only the
+   letterforms, which need the contrast, are darkened. */
+.is-tagged .tag-select {
+  color: color-mix(in srgb, var(--tag) 65%, #000);
+}
+
+/* --- type scale ----------------------------------------------------------
+   A floor of 11.5px for uppercase tracked labels, which read larger than
+   their size, and 12.5px for anything in sentence case. Nine styles sat below
+   that, several at 9.5px. */
+
+.panel-title { font-size: 12px; }
+.tagline { font-size: 11.5px; }
+
+.badge { font-size: 11px; padding: 3px 9px; }
+.log-done { font-size: 11px; }
+
+.total-label,
+.asg-total-label,
+.field-label { font-size: 11.5px; }
+
+.statusbar { font-size: 12.5px; }
+.tag-select { font-size: 12.5px; }
+.tag-row-count { font-size: 12.5px; }
+
+.item-time,
+.log-duration,
+.assignment-when { font-size: 13px; }
+
+.reminder-count { font-size: 12px; }
+.assignment-countdown { font-size: 12.5px; }
+.seg span { font-size: 13.5px; }
+.timer-empty { font-size: 12px; }
+
+/* The manual-entry unit labels were inheriting something smaller still. */
+.manual label,
+.manual .unit,
+.char-count { font-size: 12px; color: var(--muted); }
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */
