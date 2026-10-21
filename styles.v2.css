@@ -183,7 +183,18 @@ body {
 
 .work { padding: var(--gap) var(--gap) 0; }
 .review { padding: var(--gap); gap: var(--gap); }
-.assignments { padding: var(--gap); gap: var(--gap); }
+/* `.assignments` is a plain block in the base sheet, so the `gap` this layer
+   asked for was silently doing nothing: five panels stacked edge to edge with
+   no space between them. That also hid the glass — a drop shadow needs a gap
+   to fall into, so the panels read as one flat slab however correct their
+   box-shadow was. `.review` on Tasks is already a flex column, which is
+   exactly why that page looked right and this one did not. */
+.assignments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--gap);
+}
 
 /* --- entries -------------------------------------------------------------
    Every row is a bounded card. The previous pass separated rows with a rule
@@ -1002,10 +1013,10 @@ body:has(.page[data-page="progress"]:not([hidden])) .tab.is-active {
 /* Teal reads lighter than amber at the same strength, so the ground needs a
    little more of it to land with the same presence. */
 body:has(.page[data-page="assignments"]:not([hidden]))::before,
-body:has(.page[data-page="progress"]:not([hidden]))::before { opacity: 0.62; }
+body:has(.page[data-page="progress"]:not([hidden]))::before { opacity: 0.8; }
 
 body:has(.page[data-page="assignments"]:not([hidden]))::after,
-body:has(.page[data-page="progress"]:not([hidden]))::after { opacity: 0.5; }
+body:has(.page[data-page="progress"]:not([hidden]))::after { opacity: 0.64; }
 
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
