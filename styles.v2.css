@@ -825,28 +825,134 @@ body::after {
 .btn[data-action="generate"],
 .btn[data-action="print-summary"],
 .seg input:checked + span {
-  background: linear-gradient(180deg, #ffd27e 0%, #f7ae38 100%);
-  border-color: #dd9826;
+  background: linear-gradient(180deg, var(--fill-top) 0%, var(--fill-bottom) 100%);
+  border-color: var(--fill-edge);
   color: var(--text);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 2px 10px -4px rgba(176, 108, 18, 0.5);
+    0 2px 10px -4px var(--fill-glow);
 }
 
 .btn-primary:hover:not(:disabled),
 .btn-add:hover,
 .btn[data-action="generate"]:hover,
 .btn[data-action="print-summary"]:hover {
-  background: linear-gradient(180deg, #ffc661 0%, #efa128 100%);
-  border-color: #c9871c;
+  background: linear-gradient(180deg, var(--fill-top-hi) 0%, var(--fill-bottom-hi) 100%);
+  border-color: var(--fill-edge-hi);
   color: var(--text);
 }
 
 /* The segmented control's chosen half is small, so it carries the flat amber
    rather than the gradient — a gradient inside a 24px pill just muddies it. */
 .seg input:checked + span {
-  background: #f9b23f;
+  background: var(--fill-bottom);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* --- two palettes, one set of rules -------------------------------------
+   The filled-button gradient reads its colours from tokens, so a page only
+   has to restate the tokens. Tasks keeps the amber; Assignments and its
+   progress sub-page take a green-cyan that matches their own ground. */
+
+:root {
+  --fill-top: #ffd27e;
+  --fill-bottom: #f7ae38;
+  --fill-edge: #dd9826;
+  --fill-glow: rgba(176, 108, 18, 0.5);
+  --fill-top-hi: #ffc661;
+  --fill-bottom-hi: #efa128;
+  --fill-edge-hi: #c9871c;
+}
+
+.page[data-page="assignments"],
+.page[data-page="progress"] {
+  --text: #0f1714;
+  --muted: #4b5a54;
+  --line: #9db5ad;
+  --border: #b6ccc4;
+
+  --accent: #2fb79b;
+  --accent-strong: #1d8d77;
+  --accent-soft: #e4f6f1;
+
+  /* Cool near-black, so the control edges belong to this ground rather than
+     to the warm one next door. */
+  --btn-line: #2b3733;
+
+  --fill-top: #a9edda;
+  --fill-bottom: #5ed3bd;
+  --fill-edge: #37b49c;
+  --fill-glow: rgba(20, 120, 102, 0.45);
+  --fill-top-hi: #94e6ce;
+  --fill-bottom-hi: #45c7ae;
+  --fill-edge-hi: #2a9a84;
+
+  --glass-edge: color-mix(in srgb, #ffffff 78%, transparent);
+  --glass: color-mix(in srgb, #ffffff 62%, transparent);
+  --glass-row: color-mix(in srgb, #ffffff 86%, transparent);
+  --lift:
+    0 20px 44px -22px rgba(16, 92, 78, 0.34),
+    0 6px 16px -10px rgba(16, 92, 78, 0.2);
+  --glow: none;
+}
+
+/* --- the green-cyan ground ----------------------------------------------
+   Same glass and the same two counter-drifting layers, a different light.
+   The animated layers live on body, and which page is showing is a property
+   of a descendant, so :has() is what connects the two — there is no shared
+   ancestor that already knows. Browsers without :has() keep the warm ground,
+   which is a perfectly good fallback rather than a broken one. */
+
+body:has(.page[data-page="assignments"]:not([hidden]))::before,
+body:has(.page[data-page="progress"]:not([hidden]))::before {
+  background:
+    radial-gradient(38% 44% at 22% 26%, #2fb79b 0%, transparent 62%),
+    radial-gradient(34% 40% at 78% 20%, #7fe3c0 0%, transparent 60%),
+    radial-gradient(44% 50% at 64% 80%, #3fc3d6 0%, transparent 62%),
+    radial-gradient(30% 36% at 12% 78%, #c6f2dd 0%, transparent 60%);
+}
+
+body:has(.page[data-page="assignments"]:not([hidden]))::after,
+body:has(.page[data-page="progress"]:not([hidden]))::after {
+  background:
+    radial-gradient(30% 34% at 86% 60%, #58d9c6 0%, transparent 58%),
+    radial-gradient(26% 32% at 34% 10%, #35b7c9 0%, transparent 56%),
+    radial-gradient(28% 30% at 50% 50%, #e2fbf1 0%, transparent 58%);
+}
+
+/* The shell sits outside both pages, so it is tinted from the same :has()
+   rather than inheriting a page token it cannot see. */
+body:has(.page[data-page="assignments"]:not([hidden])) .statusbar,
+body:has(.page[data-page="progress"]:not([hidden])) .statusbar {
+  color: #4b5a54;
+}
+
+/* The active tab too. The original design kept the header warm on both pages
+   on purpose, but that was when the pages differed only in their accent —
+   against a full teal ground an amber pill is the one thing in the window
+   that belongs to the other page. */
+body:has(.page[data-page="assignments"]:not([hidden])) .tab.is-active,
+body:has(.page[data-page="progress"]:not([hidden])) .tab.is-active {
+  background: #e4f6f1;
+  border-color: #2fb79b;
+  color: #1d8d77;
+}
+
+/* The capture form's primary action is filled on Tasks and was outlined
+   here, purely because the two forms happened to reuse different classes.
+   Matching them is part of "the same treatment". */
+.page[data-page="assignments"] [data-form="assignment"] .btn-manual {
+  background: linear-gradient(180deg, var(--fill-top) 0%, var(--fill-bottom) 100%);
+  border-color: var(--fill-edge);
+  color: var(--text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 10px -4px var(--fill-glow);
+}
+
+.page[data-page="assignments"] [data-form="assignment"] .btn-manual:hover {
+  background: linear-gradient(180deg, var(--fill-top-hi) 0%, var(--fill-bottom-hi) 100%);
+  border-color: var(--fill-edge-hi);
 }
 
 /* --- narrow windows ------------------------------------------------------
