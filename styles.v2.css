@@ -584,7 +584,10 @@ body {
      stated outright. */
   --hairline: #d4cabb;
   --border: #ddd6cb;
-  --btn-line: color-mix(in srgb, var(--text) 30%, transparent);
+  /* A stated grey, not a tint of the text colour. 30% of near-black over
+     white lands near #b6b1ab, which is still reading as a shadow rather than
+     as an edge. */
+  --btn-line: #a79d91;
 
   /* Still receding, but legible while receding. */
   --dim: 0.72;
@@ -690,6 +693,63 @@ body {
 .assignment-form select {
   border: 1px solid var(--btn-line);
 }
+
+/* --- bolder control outlines -------------------------------------------
+   Asked for twice, so this stops nudging. Every control a pointer can act on
+   carries a 1.5px edge in a stated grey, and every one of them darkens to the
+   full text colour on hover. The rule is simple enough to hold: if you can
+   click it, you can see where it ends. */
+
+.item-delete,
+.item-resume,
+.item-check,
+.tag-select,
+.btn,
+.btn-add,
+.btn-manual,
+.btn-finish,
+.btn-reset,
+.btn-cal,
+.btn-cal-option,
+.btn-progress,
+.segmented {
+  border-width: 1.5px;
+  border-style: solid;
+  border-color: var(--btn-line);
+}
+
+.item-delete:hover,
+.item-resume:hover,
+.item-check:hover,
+.tag-select:hover,
+.btn-secondary:hover:not(:disabled),
+.btn-manual:hover,
+.btn-finish:hover:not(:disabled),
+.btn-reset:hover {
+  border-color: var(--text);
+}
+
+/* The filled buttons keep their own darker edge rather than the grey, so the
+   family still reads as one set. */
+.btn-primary,
+.btn-add,
+.btn-primary:hover:not(:disabled),
+.btn-add:hover {
+  border-color: var(--accent-strong);
+}
+
+/* A tagged pill states its tag at full strength; it is an outline too. The
+   width has to be restated here: `.is-tagged .tag-select` earlier in this
+   sheet sets the whole `border` shorthand, and its higher specificity beats
+   the bare `.tag-select` above whatever the source order. */
+.is-tagged .tag-select { border: 1.5px solid var(--tag); }
+
+/* The divider inside the segmented control matches the box around it. */
+.seg + .seg { border-left: 1.5px solid var(--btn-line); }
+
+/* Badges are labels rather than controls, so they stay a hair lighter —
+   but still a real edge, not a suggestion of one. */
+.badge { border: 1px solid color-mix(in srgb, currentColor 48%, transparent); }
 
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
