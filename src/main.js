@@ -2929,6 +2929,42 @@ function renderAccount() {
   }
 }
 
+// --- where to go after signing in ------------------------------------------
+//
+// Signing in is an errand, not a destination: it should hand you back to
+// whatever you were doing. `returnTo` is the last page that was not part of
+// the sign-in flow, so the two auth pages can never be their own answer.
+
+const AUTH_PAGES = new Set(['account', 'signup']);
+const RETURN_KEY = 'tasky.returnTo';
+
+const pageFromHash = () => location.hash.replace(/^#\/?/, '').split('/')[0] || 'tasks';
+
+let returnTo = '#tasks';
+
+/**
+ * Google takes the whole document away and brings it back, so the variable
+ * above does not survive the trip. sessionStorage does, and this is a routing
+ * breadcrumb for one round trip rather than app state — which is why it does
+ * not belong behind storage.js with everything that is actually saved.
+ */
+function rememberReturnAcrossRedirect() {
+  try { sessionStorage.setItem(RETURN_KEY, returnTo); } catch { /* fine without it */ }
+}
+
+function readReturnAfterRedirect() {
+  try {
+    const saved = sessionStorage.getItem(RETURN_KEY);
+    sessionStorage.removeItem(RETURN_KEY);
+    if (saved && !AUTH_PAGES.has(saved.replace(/^#\/?/, '').split('/')[0])) returnTo = saved;
+  } catch { /* fine without it */ }
+}
+
+/** Only moves if you are standing on a sign-in page; otherwise leaves you be. */
+function leaveAuthPage() {
+  if (AUTH_PAGES.has(pageFromHash())) location.hash = returnTo;
+}
+
 // --- creating an account ---------------------------------------------------
 
 /**
@@ -3091,10 +3127,12 @@ signinForm.addEventListener('submit', async (event) => {
   // onAuthChange repaints on success, so nothing is reported here but failure.
   if (await runAuth('Signing in', () => signIn(creds.email, creds.password))) {
     accountNote('');
+    leaveAuthPage();
   }
 });
 
 document.querySelector('[data-action="sign-in-google"]').addEventListener('click', () => {
+  rememberReturnAcrossRedirect();
   runAuth('Opening Google', signInWithGoogle);
 });
 
@@ -3156,6 +3194,10 @@ function currentPage() {
 function renderPage() {
   const page = currentPage();
 
+  // Recorded here rather than on hashchange so it also catches the first load
+  // and any route the app sets itself.
+  if (!AUTH_PAGES.has(page)) returnTo = location.hash || '#tasks';
+
   for (const el of pageEls) el.hidden = el.dataset.page !== page;
 
   for (const tab of tabEls) {
@@ -3176,10 +3218,21 @@ addEventListener('hashchange', render);
 
 // A Google round trip comes back with the session in the URL, which would
 // otherwise be read as a route. Cleared before the router ever sees it.
-cleanAuthRedirect();
+const returningFromProvider = cleanAuthRedirect();
+if (returningFromProvider) readReturnAfterRedirect();
 
+// Navigation is deliberately *not* done here. This fires on every session
+// restore too, so redirecting from it would bounce anyone who opened the
+// account page on purpose from the Profile menu.
 onAuthChange((user) => { authUser = user; repaint(); });
-currentUser().then((user) => { authUser = user; repaint(); });
+
+currentUser().then((user) => {
+  authUser = user;
+  repaint();
+  // The one exception: arriving back from a provider means a sign-in just
+  // completed, so it is handled like any other completed sign-in.
+  if (user && returningFromProvider) leaveAuthPage();
+});
 
 reconcileOpenRun();
 
