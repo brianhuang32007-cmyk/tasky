@@ -69,8 +69,29 @@
       <a class="tab" href="#assignments" data-page="assignments">My Assignments</a>
     </nav>
 
-    <!-- Label and destination both follow the session; see renderAccount(). -->
+    <!-- Signed out. renderAccount() swaps which of these two is visible. -->
     <a class="account-link" href="#account" data-region="account-link">Sign in</a>
+
+    <!-- Signed in. <details> rather than a hand-rolled popover: the open state
+         is then the browser's to keep, and survives the re-render that follows
+         every change to app state. The reminders use it for the same reason. -->
+    <details class="avatar-menu" data-region="avatar-menu" hidden>
+      <summary class="avatar" aria-label="Account menu" title="Account">
+        <img class="avatar-img" data-region="avatar-img" alt="" hidden>
+        <svg class="avatar-fallback" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8.6" r="3.9"/>
+          <path d="M4.6 20.4a7.4 7.4 0 0 1 14.8 0"/>
+        </svg>
+      </summary>
+
+      <div class="avatar-pop" role="menu">
+        <p class="avatar-who" data-region="avatar-email"></p>
+        <a class="avatar-item" href="#account" role="menuitem">Profile</a>
+        <a class="avatar-item" href="#settings" role="menuitem">Settings</a>
+        <button class="avatar-item is-danger" type="button" role="menuitem"
+                data-action="sign-out-menu">Sign out</button>
+      </div>
+    </details>
   </div>
 </header>
 
@@ -678,6 +699,30 @@
 
   </div>
 </div><!-- /page: account -->
+
+<div class="page" data-page="settings" hidden>
+  <div class="account-shell">
+
+    <section class="panel account-card" aria-labelledby="settings-heading">
+      <div class="panel-body">
+
+        <h2 id="settings-heading" class="account-title">Settings</h2>
+        <p class="account-sub">What Tasky knows, and where it keeps it.</p>
+
+        <dl class="setting-list" data-region="settings-list"></dl>
+
+        <p class="account-switch">
+          Erasing data is done per page:
+          <a class="account-link-btn" href="#tasks">My Tasks</a> and
+          <a class="account-link-btn" href="#assignments">My Assignments</a>
+          each clear only their own.
+        </p>
+
+      </div>
+    </section>
+
+  </div>
+</div><!-- /page: settings -->
 
 <template data-template="assignments-empty">
   <div class="empty-state">

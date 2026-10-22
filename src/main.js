@@ -53,6 +53,10 @@ const hint = document.querySelector('[data-region="capture-hint"]');
 const itemsRegion = document.querySelector('[data-region="items"]');
 const statusRegion = document.querySelector('[data-region="status"]');
 const accountLink = document.querySelector('[data-region="account-link"]');
+const avatarMenu = document.querySelector('[data-region="avatar-menu"]');
+const avatarImg = document.querySelector('[data-region="avatar-img"]');
+const avatarEmail = document.querySelector('[data-region="avatar-email"]');
+const settingsList = document.querySelector('[data-region="settings-list"]');
 const accountUnset = document.querySelector('[data-region="account-unset"]');
 const accountSignedOut = document.querySelector('[data-region="account-signed-out"]');
 const accountSignedIn = document.querySelector('[data-region="account-signed-in"]');
@@ -1375,6 +1379,7 @@ function render() {
 function repaint() {
   renderItems();
   renderAccount();
+  renderSettings();
   renderTags();
   renderTimerItem();
   renderControls();
@@ -2898,10 +2903,72 @@ function renderAccount() {
 
   if (authUser) accountEmail.textContent = authUser.email ?? 'your account';
 
-  // The link is the only part of this visible from every page, so it carries
-  // the state: an invitation when signed out, an identity when signed in.
-  accountLink.textContent = authUser ? (authUser.email ?? 'Account') : 'Sign in';
-  accountLink.classList.toggle('is-signed-in', Boolean(authUser));
+  // Signed out it is an invitation; signed in it is the person. Exactly one
+  // of the two controls is ever in the bar.
+  const signedIn = Boolean(authUser);
+  accountLink.hidden = signedIn;
+  avatarMenu.hidden = !signedIn;
+
+  if (signedIn) {
+    avatarEmail.textContent = authUser.email ?? 'Signed in';
+
+    // Google supplies a picture; email sign-ups do not, and fall back to the
+    // silhouette already in the markup.
+    const meta = authUser.user_metadata ?? {};
+    const picture = meta.avatar_url || meta.picture || '';
+    avatarImg.hidden = !picture;
+    if (picture && avatarImg.src !== picture) avatarImg.src = picture;
+  } else {
+    // Closed on the way out, or it would be hanging open at the next sign-in.
+    avatarMenu.open = false;
+  }
+}
+
+/** A dropdown that stays open behind you is a bug, so it closes on both. */
+document.addEventListener('click', (event) => {
+  if (avatarMenu.open && !avatarMenu.contains(event.target)) avatarMenu.open = false;
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && avatarMenu.open) {
+    avatarMenu.open = false;
+    avatarMenu.querySelector('summary').focus();
+  }
+});
+
+// Following a menu item should put the menu away behind you.
+avatarMenu.addEventListener('click', (event) => {
+  if (event.target.closest('.avatar-item')) avatarMenu.open = false;
+});
+
+/**
+ * Settings reports what already exists rather than inventing anything to
+ * configure: who you are, what this device's clock says, and where the data
+ * lives. Built from state so it cannot drift from the truth.
+ */
+function renderSettings() {
+  const d = state.device ?? {};
+  const seen = (ms) => (ms ? new Date(ms).toLocaleString() : 'Not recorded yet');
+
+  const rows = [
+    ['Signed in as', authUser?.email ?? 'Not signed in'],
+    ['Sign-in method', authUser ? (authUser.app_metadata?.provider ?? 'email') : '—'],
+    ['Time zone', d.timeZone ?? 'Unknown'],
+    ['Device first seen', seen(d.firstSeenAt)],
+    ['Tasks are stored', 'In this browser, on this device'],
+  ];
+
+  settingsList.replaceChildren(...rows.flatMap(([label, value]) => {
+    const dt = document.createElement('dt');
+    dt.className = 'setting-key';
+    dt.textContent = label;
+
+    const dd = document.createElement('dd');
+    dd.className = 'setting-value';
+    dd.textContent = value;
+
+    return [dt, dd];
+  }));
 }
 
 /** Shared by both buttons on the form, so neither can skip the validation. */
@@ -2961,9 +3028,11 @@ document.querySelector('[data-action="toggle-password"]').addEventListener('clic
   field.focus();
 });
 
-document.querySelector('[data-action="sign-out"]').addEventListener('click', async () => {
-  if (await runAuth('Signing out', signOut)) accountNote('');
-});
+for (const sel of ['[data-action="sign-out"]', '[data-action="sign-out-menu"]']) {
+  document.querySelector(sel).addEventListener('click', async () => {
+    if (await runAuth('Signing out', signOut)) accountNote('');
+  });
+}
 
 // --- pages ----------------------------------------------------------------
 
@@ -2972,10 +3041,10 @@ document.querySelector('[data-action="sign-out"]').addEventListener('click', asy
 // a view change rather than a page load, which is the point: a page load would
 // run reconcileOpenRun() and silently pause a running timer every time you
 // looked at another page.
-const PAGES = ['tasks', 'assignments', 'progress', 'account'];
+const PAGES = ['tasks', 'assignments', 'progress', 'account', 'settings'];
 const PAGE_TITLES = {
   tasks: 'My Tasks', assignments: 'My Assignments',
-  progress: 'Progress', account: 'Account',
+  progress: 'Progress', account: 'Account', settings: 'Settings',
 };
 
 // Progress is a sub-page of Assignments, so that tab stays lit while on it.
