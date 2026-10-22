@@ -1458,6 +1458,73 @@ body:has(.page[data-page="progress"]:not([hidden]))::after { opacity: 0.64; }
 
 .setting-list > :nth-last-child(-n+2) { border-bottom: 0; }
 
+/* --- creating an account ------------------------------------------------ */
+
+/* First and last sit together: they are one name, asked in two boxes. */
+.field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+}
+
+/* The date control is taller than a text input by default in most browsers,
+   so it is pinned to the same height as the pills beside it. */
+.account-input[type="date"] {
+  min-height: 56px;
+  font-family: inherit;
+}
+
+/* Rules stated up front and ticked live, rather than sprung on submit. */
+.pw-rules {
+  margin: -8px 0 22px;
+  padding: 0 0 0 18px;
+  list-style: none;
+}
+
+.pw-rules li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--muted);
+}
+
+/* An empty ring until met, a filled tick after. Shape as well as colour, so
+   the state does not rest on hue alone. */
+.pw-rules li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid color-mix(in srgb, var(--text) 28%, transparent);
+  border-radius: 50%;
+}
+
+.pw-rules li.is-met { color: var(--success-strong); font-weight: 600; }
+
+.pw-rules li.is-met::before {
+  border-color: var(--success-strong);
+  background: var(--success-strong);
+}
+
+.pw-rules li.is-met::after {
+  content: '';
+  position: absolute;
+  left: 3.6px;
+  top: 10px;
+  width: 5px;
+  height: 2.5px;
+  border-left: 1.6px solid #fff;
+  border-bottom: 1.6px solid #fff;
+  transform: rotate(-45deg);
+}
+
+@media (max-width: 520px) {
+  .field-pair { grid-template-columns: 1fr; }
+}
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */

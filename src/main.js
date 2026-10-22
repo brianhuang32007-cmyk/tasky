@@ -57,6 +57,10 @@ const avatarMenu = document.querySelector('[data-region="avatar-menu"]');
 const avatarImg = document.querySelector('[data-region="avatar-img"]');
 const avatarEmail = document.querySelector('[data-region="avatar-email"]');
 const settingsList = document.querySelector('[data-region="settings-list"]');
+const signupForm = document.querySelector('[data-form="signup"]');
+const signupUnset = document.querySelector('[data-region="signup-unset"]');
+const signupMsg = document.querySelector('[data-region="signup-msg"]');
+const pwRules = document.querySelector('[data-region="pw-rules"]');
 const accountUnset = document.querySelector('[data-region="account-unset"]');
 const accountSignedOut = document.querySelector('[data-region="account-signed-out"]');
 const accountSignedIn = document.querySelector('[data-region="account-signed-in"]');
@@ -1379,6 +1383,7 @@ function render() {
 function repaint() {
   renderItems();
   renderAccount();
+  renderSignup();
   renderSettings();
   renderTags();
   renderTimerItem();
@@ -2924,6 +2929,94 @@ function renderAccount() {
   }
 }
 
+// --- creating an account ---------------------------------------------------
+
+/**
+ * The three rules, in one place so the live checklist and the submit guard
+ * can never disagree about what a valid password is.
+ */
+const PASSWORD_RULES = {
+  length: (pw) => pw.length >= 8,
+  upper: (pw) => /[A-Z]/.test(pw),
+  digit: (pw) => /[0-9]/.test(pw),
+};
+
+const passwordOk = (pw) => Object.values(PASSWORD_RULES).every((met) => met(pw));
+
+function renderPasswordRules() {
+  const pw = signupForm.elements.password.value;
+  for (const li of pwRules.querySelectorAll('[data-rule]')) {
+    li.classList.toggle('is-met', PASSWORD_RULES[li.dataset.rule](pw));
+  }
+}
+
+function renderSignup() {
+  const ready = isConfigured();
+  signupUnset.hidden = ready;
+  signupForm.hidden = !ready;
+
+  // A birthday in the future is a typo, not a choice.
+  signupForm.elements.birthday.max = new Date().toISOString().slice(0, 10);
+}
+
+function signupNote(text, kind = '') {
+  signupMsg.textContent = text;
+  signupMsg.className = kind ? `account-msg ${kind}` : 'account-msg';
+  signupMsg.hidden = !text;
+}
+
+signupForm.addEventListener('input', renderPasswordRules);
+
+document.querySelector('[data-action="toggle-signup-password"]').addEventListener('click', (event) => {
+  const field = signupForm.elements.password;
+  const button = event.currentTarget;
+  const showing = field.type === 'text';
+
+  field.type = showing ? 'password' : 'text';
+  button.setAttribute('aria-pressed', String(!showing));
+  button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+  field.focus();
+});
+
+signupForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const f = signupForm.elements;
+  const value = (name) => f[name].value.trim();
+
+  // Checked here as well as by `required`, since a name of only spaces passes
+  // the browser's check and is not a name.
+  if (!value('first') || !value('last') || !value('display') || !value('birthday') || !value('email')) {
+    signupNote('Fill in every field first.', 'is-error');
+    return;
+  }
+
+  if (!passwordOk(f.password.value)) {
+    signupNote('That password does not meet all three rules yet.', 'is-error');
+    f.password.focus();
+    return;
+  }
+
+  signupNote('Creating your account…');
+
+  const { error } = await signUp(value('email'), f.password.value, {
+    first_name: value('first'),
+    last_name: value('last'),
+    display_name: value('display'),
+    birthday: value('birthday'),
+  });
+
+  if (error) {
+    signupNote(error, 'is-error');
+    return;
+  }
+
+  // Supabase confirms by email by default, so this is not yet a session.
+  signupForm.reset();
+  renderPasswordRules();
+  signupNote(`Account created. Check ${value('email')} for a confirmation link.`, 'is-ok');
+});
+
 /** A dropdown that stays open behind you is a bug, so it closes on both. */
 document.addEventListener('click', (event) => {
   if (avatarMenu.open && !avatarMenu.contains(event.target)) avatarMenu.open = false;
@@ -3001,16 +3094,6 @@ signinForm.addEventListener('submit', async (event) => {
   }
 });
 
-document.querySelector('[data-action="sign-up"]').addEventListener('click', async () => {
-  const creds = credentials();
-  if (!creds) return;
-
-  // Supabase confirms by email by default, so a new account is not a session.
-  if (await runAuth('Creating your account', () => signUp(creds.email, creds.password))) {
-    accountNote('Check your email for a confirmation link.', 'is-ok');
-  }
-});
-
 document.querySelector('[data-action="sign-in-google"]').addEventListener('click', () => {
   runAuth('Opening Google', signInWithGoogle);
 });
@@ -3041,10 +3124,10 @@ for (const sel of ['[data-action="sign-out"]', '[data-action="sign-out-menu"]'])
 // a view change rather than a page load, which is the point: a page load would
 // run reconcileOpenRun() and silently pause a running timer every time you
 // looked at another page.
-const PAGES = ['tasks', 'assignments', 'progress', 'account', 'settings'];
+const PAGES = ['tasks', 'assignments', 'progress', 'account', 'signup', 'settings'];
 const PAGE_TITLES = {
-  tasks: 'My Tasks', assignments: 'My Assignments',
-  progress: 'Progress', account: 'Account', settings: 'Settings',
+  tasks: 'My Tasks', assignments: 'My Assignments', progress: 'Progress',
+  account: 'Account', signup: 'Create an account', settings: 'Settings',
 };
 
 // Progress is a sub-page of Assignments, so that tab stays lit while on it.

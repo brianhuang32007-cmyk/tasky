@@ -678,7 +678,7 @@
 
           <p class="account-switch">
             New here?
-            <button class="account-link-btn" type="button" data-action="sign-up">Create an account</button>
+            <a class="account-link-btn" href="#signup">Create an account</a>
           </p>
         </div>
 
@@ -699,6 +699,83 @@
 
   </div>
 </div><!-- /page: account -->
+
+<div class="page" data-page="signup" hidden>
+  <div class="account-shell">
+
+    <section class="panel account-card" aria-labelledby="signup-heading">
+      <div class="panel-body">
+
+        <h2 id="signup-heading" class="account-title">Create an account</h2>
+        <p class="account-sub">A few details, and Tasky is yours.</p>
+
+        <div class="account-unset" data-region="signup-unset" hidden>
+          <p class="placeholder">Sign-in is not set up for this copy of Tasky yet.</p>
+        </div>
+
+        <form class="account-fields" data-form="signup" data-region="signup-form" hidden>
+
+          <div class="field-pair">
+            <div>
+              <label class="account-label" for="signup-first">First name</label>
+              <input id="signup-first" class="account-input" type="text" name="first"
+                     autocomplete="given-name" maxlength="40" placeholder="Amélie" required>
+            </div>
+            <div>
+              <label class="account-label" for="signup-last">Last name</label>
+              <input id="signup-last" class="account-input" type="text" name="last"
+                     autocomplete="family-name" maxlength="40" placeholder="Laurent" required>
+            </div>
+          </div>
+
+          <label class="account-label" for="signup-display">Display name</label>
+          <input id="signup-display" class="account-input" type="text" name="display"
+                 autocomplete="nickname" maxlength="40" placeholder="What Tasky should call you" required>
+
+          <label class="account-label" for="signup-birthday">Birthday</label>
+          <input id="signup-birthday" class="account-input" type="date" name="birthday" required>
+
+          <label class="account-label" for="signup-email">Email</label>
+          <input id="signup-email" class="account-input" type="email" name="email"
+                 autocomplete="email" placeholder="you@example.com" required>
+
+          <label class="account-label" for="signup-password">Password</label>
+          <div class="account-secret">
+            <input id="signup-password" class="account-input" type="password" name="password"
+                   autocomplete="new-password" placeholder="At least 8 characters" required>
+            <button class="account-peek" type="button" data-action="toggle-signup-password"
+                    aria-pressed="false" aria-label="Show password">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path class="peek-eye" d="M1.8 10S4.8 4.8 10 4.8 18.2 10 18.2 10 15.2 15.2 10 15.2 1.8 10 1.8 10Z"/>
+                <circle class="peek-eye" cx="10" cy="10" r="2.6"/>
+                <path class="peek-slash" d="M3.5 3.5 16.5 16.5"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Stated up front and ticked live, so the rules are never a
+               surprise delivered only on submit. -->
+          <ul class="pw-rules" data-region="pw-rules" aria-live="polite">
+            <li data-rule="length">At least 8 characters</li>
+            <li data-rule="upper">One uppercase letter</li>
+            <li data-rule="digit">One number</li>
+          </ul>
+
+          <button class="account-submit" type="submit">Create account</button>
+        </form>
+
+        <p class="account-switch">
+          Already have an account?
+          <a class="account-link-btn" href="#account">Sign in</a>
+        </p>
+
+        <p class="account-msg" data-region="signup-msg" role="status" aria-live="polite" hidden></p>
+
+      </div>
+    </section>
+
+  </div>
+</div><!-- /page: signup -->
 
 <div class="page" data-page="settings" hidden>
   <div class="account-shell">

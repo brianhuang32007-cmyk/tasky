@@ -110,11 +110,18 @@ export const signIn = (email, password) =>
  * than signing the user straight in, which is why the caller reports "check
  * your email" rather than assuming a session now exists.
  */
-export const signUp = (email, password) =>
+export const signUp = (email, password, profile = {}) =>
   attempt((s) => s.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${location.origin}${location.pathname}` },
+    options: {
+      emailRedirectTo: `${location.origin}${location.pathname}`,
+      // Lands in the user's own `user_metadata`, which Supabase creates with
+      // the account. A profile table would need its own RLS policies before it
+      // could hold anything; this needs nothing and is already scoped to the
+      // one user, so it is the right home until there is a reason to move.
+      data: profile,
+    },
   }));
 
 /**
