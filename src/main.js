@@ -2948,6 +2948,19 @@ document.querySelector('[data-action="sign-in-google"]').addEventListener('click
   runAuth('Opening Google', signInWithGoogle);
 });
 
+// Showing the password is a deliberate, visible act: the control reports its
+// own state so a screen reader and a sighted user learn the same thing.
+document.querySelector('[data-action="toggle-password"]').addEventListener('click', (event) => {
+  const field = document.querySelector('#account-password');
+  const button = event.currentTarget;
+  const showing = field.type === 'text';
+
+  field.type = showing ? 'password' : 'text';
+  button.setAttribute('aria-pressed', String(!showing));
+  button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+  field.focus();
+});
+
 document.querySelector('[data-action="sign-out"]').addEventListener('click', async () => {
   if (await runAuth('Signing out', signOut)) accountNote('');
 });
