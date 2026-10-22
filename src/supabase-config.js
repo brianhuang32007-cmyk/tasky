@@ -13,5 +13,5 @@
 // While the URL is blank the app runs exactly as before, and the account page
 // says sign-in is not configured yet.
 
-export const SUPABASE_URL = 'https://jmpwwkefixyplnhilkqw.supabase.co';
-export const SUPABASE_ANON_KEY = 'sb_publishable_XWe5mEgZFQx8nHkvrTuxhg_CNwZqLy3';
+export const SUPABASE_URL = 'https://xofuwlovbulwpknmypve.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_51y2Qxc1LvsFQB5W59Qq5A_UvPEXkrx';
