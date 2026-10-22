@@ -111,8 +111,7 @@ const assignmentsDoneRegion = document.querySelector('[data-region="assignments-
 const assignmentTotalsRegion = document.querySelector('[data-region="assignment-totals"]');
 const whenRegion = document.querySelector('[data-region="when"]');
 const whenLabel = document.querySelector('[data-region="when-label"]');
-const daySelect = document.querySelector('[data-region="day"]');
-const monthSelect = document.querySelector('[data-region="month"]');
+const dueDate = document.querySelector('[data-region="due"]');
 const timeField = document.querySelector('[data-region="time"]');
 const descField = document.querySelector('[data-region="desc"]');
 const assignmentsEmptyTpl = document.querySelector('[data-template="assignments-empty"]');
@@ -1673,7 +1672,6 @@ if (analysisUI) {
 
 assignmentForm.addEventListener('change', (event) => {
   if (event.target.name === 'kind') renderAssignmentForm();
-  if (event.target === monthSelect) buildDayOptions();
 });
 
 assignmentForm.addEventListener('input', () => {
@@ -1694,26 +1692,33 @@ assignmentForm.addEventListener('submit', (event) => {
   }
 
   // A date is required for an assignment and an exam or event, and meaningless
-  // for anything else. The blank first option is what makes "must input a
-  // date" real — a pre-selected 1 January could be submitted without a thought.
-  if (needsDate(kind) && (!daySelect.value || !monthSelect.value)) {
+  // for anything else. A date input starts empty, which is what keeps "must
+  // input a date" real — nothing is pre-selected to submit without a thought.
+  if (needsDate(kind) && !dueDate.value) {
     assignmentHint.textContent =
-      kind === 'assignment' ? 'Pick a deadline day and month.' : 'Pick a day and month.';
-    (daySelect.value ? monthSelect : daySelect).focus();
+      kind === 'assignment' ? 'Pick a deadline date.' : 'Pick a date.';
+    dueDate.focus();
     return;
   }
+
+  // Split the string rather than new Date(): "2026-03-14" is parsed as UTC
+  // midnight, which lands on the 13th for anyone west of Greenwich.
+  const [, month, day] = (dueDate.value || '--').split('-').map(Number);
 
   addAssignment({
     name,
     kind,
-    day: Number(daySelect.value),
-    month: Number(monthSelect.value),
+    // Only the day and month are kept. A stored date carries no year by
+    // design — nextOccurrence(), the countdown, the reminders and both
+    // calendar exports all resolve "the next time this date comes round".
+    // The picker's year is input convenience, not data.
+    day,
+    month,
     time: fields.time.value.trim(),
     description: fields.description.value.trim(),
   });
 
   assignmentForm.reset();
-  buildDayOptions(); // the reset month may allow a different number of days
   assignmentHint.textContent = '';
   render();
   fields.name.focus();
@@ -1934,9 +1939,6 @@ timelineGrid.addEventListener('click', (event) => {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// February gets 29: without a year there is no way to rule out a leap day, and
-// refusing a real date is worse than allowing one that needs the right year.
-const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 const KIND_LABELS = { assignment: 'Assignment', event: 'Exam / event', other: 'Other' };
 
@@ -2012,37 +2014,6 @@ function compareAssignments(a, b) {
 /** Which kinds require a date. Other needs nothing. */
 const needsDate = (kind) => kind === 'assignment' || kind === 'event';
 
-function option(value, label) {
-  const el = document.createElement('option');
-  el.value = value;
-  el.textContent = label;
-  return el;
-}
-
-function buildMonthOptions() {
-  monthSelect.replaceChildren(
-    option('', 'Month'),
-    ...MONTHS.map((name, i) => option(String(i + 1), name)),
-  );
-}
-
-/**
- * Day options track the chosen month, so 31 February is never offered rather
- * than being offered and then rejected.
- */
-function buildDayOptions() {
-  const month = Number(monthSelect.value);
-  const count = month ? DAYS_IN_MONTH[month - 1] : 31;
-  const chosen = daySelect.value;
-
-  daySelect.replaceChildren(
-    option('', 'Day'),
-    ...Array.from({ length: count }, (_, i) => option(String(i + 1), String(i + 1))),
-  );
-
-  // Keep the day if it still exists in the new month; otherwise clear it.
-  daySelect.value = chosen && Number(chosen) <= count ? chosen : '';
-}
 
 // Both capped the same way: maxlength stops the typing, the slice guards the
 // data in case a value ever arrives from somewhere other than that input.
@@ -3257,6 +3228,4 @@ subscribe(adoptExternalState);
 
 buildSwatches();
 buildTicks();
-buildMonthOptions();
-buildDayOptions();
 render(); // renderPage() runs inside it

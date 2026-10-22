@@ -1525,6 +1525,23 @@ body:has(.page[data-page="progress"]:not([hidden]))::after { opacity: 0.64; }
   .field-pair { grid-template-columns: 1fr; }
 }
 
+/* The assignment date: the browser's own picker, matched to the controls
+   beside it. A calendar beats a 31-item scrolling list of numbers. */
+.when-date {
+  flex: none;
+  padding: 9px 12px;
+  border: 1.5px solid var(--btn-line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+
+.when-date:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.when-date::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.75; }
+.when-date::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */

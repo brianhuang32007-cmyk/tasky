@@ -386,8 +386,12 @@
                plus an optional time for an exam or event, nothing for other. -->
           <div class="when" data-region="when">
             <span class="when-label" data-region="when-label">Due</span>
-            <select class="when-select" name="day" aria-label="Day" data-region="day"></select>
-            <select class="when-select" name="month" aria-label="Month" data-region="month"></select>
+            <input
+              class="when-date"
+              type="date"
+              name="due"
+              aria-label="Date"
+              data-region="due">
             <input
               class="when-time"
               type="text"
