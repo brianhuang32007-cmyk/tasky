@@ -545,6 +545,73 @@ and can be checked against the page. That is two different questions answered
 correctly, not a discrepancy — the panel asks "how much time has this tag
 taken", the report asks "what did I finish today".
 
+## Accounts
+
+Sign-in is **Supabase Auth**, reached through `src/supabase.js` and nothing
+else — the same boundary rule `src/storage.js` follows for `localStorage`. The
+client is loaded with a *dynamic* `import()`, which keeps the library off the
+critical path for anyone who never signs in and, less obviously, survives
+`tools/build_preview.py`: that bundler flattens the module graph into one
+classic `<script>`, where a top-level `import` would be a syntax error.
+
+The two values in `src/supabase-config.js` are **meant to be public**. The
+publishable key is designed to ship in client code; protection comes from Row
+Level Security (`auth.uid() = user_id`), not from the key being secret. The
+`sb_secret_` key is the opposite and must never appear in this repo.
+
+Four pages hang off it — `#account`, `#signup`, `#reset`, `#settings` — all
+hash-routed views in the one document like every other page. `AUTH_PAGES`
+names them, which is what lets `leaveAuthPage()` send someone back where they
+came from instead of to a dead end.
+
+**Signing in returns you to the page you left.** `returnTo` is captured on the
+way in and survives an OAuth round trip, because the provider reloads the
+document and a variable would not. With no previous page it falls back to
+Tasks. The **Sign in** button is then replaced by a round avatar whose
+`<details>` menu holds Profile, Settings and Sign out — `<details>` again, so
+the open state is the browser's to keep across a re-render.
+
+### Coming back from a redirect
+
+Reading the URL and clearing it are **two separate steps, deliberately**. The
+Supabase client reads `?code=` when it is created, and it is created lazily, so
+anything that strips the parameters before then destroys the session instead of
+tidying up after it. That is exactly what broke every Google sign-in once:
+`authRedirectInfo()` now only reports, and `clearAuthParams()` does the tidying
+after `currentUser()` has resolved.
+
+A provider that refuses says why, and that message is surfaced. Swallowing it
+is what made a failed sign-in look like nothing happening at all.
+
+### Forgotten passwords
+
+One page, `#reset`, holding two steps: ask for the link, then set the new
+password after following it. `recoveryMode` says which is showing, and it is
+only ever turned on by arriving back from a recovery email.
+
+**Recovery and Google both come back with the same `?code=`** and both
+establish a session, so the `#reset` hash written into the recovery link's
+`redirectTo` is the only thing that tells them apart. It is read before
+anything rewrites the URL. Supabase also names a `PASSWORD_RECOVERY` event,
+which is honoured as well — belt and braces, in case a provider ever returns
+without the hash surviving.
+
+**The request step answers the same way whether or not the address exists.**
+"If … has an account, a reset link is on its way." A different answer for a
+registered address would turn the form into a way of testing which emails have
+accounts here.
+
+The new-password step reuses signup's `PASSWORD_RULES` — the live checklist and
+the submit guard read the same object, so the two can never disagree about what
+a valid password is.
+
+Two failures are handled apart from the rest. A link that no longer resolves to
+a session drops `recoveryMode` and restores the request form, so there is a way
+out rather than a dead form; and Supabase's own wording for it
+("Auth session missing!") is replaced, because unlike most of its messages that
+one is not written for people. Everything else Supabase says is passed through
+unchanged.
+
 ## The printed daily summary
 
 **Print daily summary**, at the foot of the Tasks page, downloads a PDF: the
@@ -721,12 +788,16 @@ the single timer with start/pause/resume/stop/finish, switching without time
 loss, the completed log, date-based review with a calendar summary, AI analysis,
 and reminders.
 
-Out of scope for the MVP, deliberately: accounts and auth, sync across devices,
-CSV import or export, teams and sharing, recurring tasks, subtasks, tags, and
-project grouping.
+Out of scope for the MVP, deliberately: sync across devices, CSV import or
+export, teams and sharing, recurring tasks, and project grouping.
 
-Deferred but expected: **accounts and sync.** Storage stays behind one module so this
-does not become a rewrite.
+Accounts, subtasks and tags were all listed here once and have since been
+built — see **Accounts**, the progress page, and **Tags**. Signing in does not
+yet move any data: tasks and assignments still live only in this browser.
+
+Deferred but expected: **sync.** Accounts exist; what is missing is moving the
+data behind them. Storage stays behind one module so that does not become a
+rewrite.
 
 ### Analysis
 

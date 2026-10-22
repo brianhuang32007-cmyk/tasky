@@ -13,6 +13,7 @@ import { TAG_COLOURS, TAG_NAME_LIMIT, colourHex } from './tags.js';
 import {
   isConfigured, authRedirectInfo, clearAuthParams, currentUser, onAuthChange,
   signIn, signUp, signInWithGoogle, signOut,
+  requestPasswordReset, updatePassword,
 } from './supabase.js';
 import {
   formatClock,
@@ -61,6 +62,13 @@ const signupForm = document.querySelector('[data-form="signup"]');
 const signupUnset = document.querySelector('[data-region="signup-unset"]');
 const signupMsg = document.querySelector('[data-region="signup-msg"]');
 const pwRules = document.querySelector('[data-region="pw-rules"]');
+const resetRequestForm = document.querySelector('[data-form="reset-request"]');
+const resetNewForm = document.querySelector('[data-form="reset-new"]');
+const resetUnset = document.querySelector('[data-region="reset-unset"]');
+const resetMsg = document.querySelector('[data-region="reset-msg"]');
+const resetRules = document.querySelector('[data-region="reset-rules"]');
+const resetTitle = document.querySelector('[data-region="reset-title"]');
+const resetSub = document.querySelector('[data-region="reset-sub"]');
 const accountUnset = document.querySelector('[data-region="account-unset"]');
 const accountSignedOut = document.querySelector('[data-region="account-signed-out"]');
 const accountSignedIn = document.querySelector('[data-region="account-signed-in"]');
@@ -1143,7 +1151,7 @@ function renderAnalysis() {
   analysisRegion.replaceChildren(...state.analysis.sections.map(analysisSection));
 }
 
-function renderReset() {
+function renderResetZones() {
   for (const zone of resetZones) {
     const armed = resetArmed === zone.dataset.scope;
     zone.querySelector('[data-action="reset"]').hidden = armed;
@@ -1383,6 +1391,7 @@ function repaint() {
   renderItems();
   renderAccount();
   renderSignup();
+  renderResetPage();
   renderSettings();
   renderTags();
   renderTimerItem();
@@ -1391,7 +1400,7 @@ function repaint() {
   renderCalendar();
   renderAnalysis();
   renderAssignments();
-  renderReset();
+  renderResetZones();
   renderPage();
   paintTimer();
   syncLoop();
@@ -2906,7 +2915,7 @@ function renderAccount() {
 // whatever you were doing. `returnTo` is the last page that was not part of
 // the sign-in flow, so the two auth pages can never be their own answer.
 
-const AUTH_PAGES = new Set(['account', 'signup']);
+const AUTH_PAGES = new Set(['account', 'signup', 'reset']);
 const RETURN_KEY = 'tasky.returnTo';
 
 const pageFromHash = () => location.hash.replace(/^#\/?/, '').split('/')[0] || 'tasks';
@@ -2950,11 +2959,25 @@ const PASSWORD_RULES = {
 
 const passwordOk = (pw) => Object.values(PASSWORD_RULES).every((met) => met(pw));
 
-function renderPasswordRules() {
-  const pw = signupForm.elements.password.value;
-  for (const li of pwRules.querySelectorAll('[data-rule]')) {
+function renderPasswordRules(form, list) {
+  const pw = form.elements.password.value;
+  for (const li of list.querySelectorAll('[data-rule]')) {
     li.classList.toggle('is-met', PASSWORD_RULES[li.dataset.rule](pw));
   }
+}
+
+/** Both password fields reveal the same way, so both use this. */
+function wirePasswordPeek(selector, form) {
+  document.querySelector(selector).addEventListener('click', (event) => {
+    const field = form.elements.password;
+    const button = event.currentTarget;
+    const showing = field.type === 'text';
+
+    field.type = showing ? 'password' : 'text';
+    button.setAttribute('aria-pressed', String(!showing));
+    button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+    field.focus();
+  });
 }
 
 function renderSignup() {
@@ -2972,18 +2995,8 @@ function signupNote(text, kind = '') {
   signupMsg.hidden = !text;
 }
 
-signupForm.addEventListener('input', renderPasswordRules);
-
-document.querySelector('[data-action="toggle-signup-password"]').addEventListener('click', (event) => {
-  const field = signupForm.elements.password;
-  const button = event.currentTarget;
-  const showing = field.type === 'text';
-
-  field.type = showing ? 'password' : 'text';
-  button.setAttribute('aria-pressed', String(!showing));
-  button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-  field.focus();
-});
+signupForm.addEventListener('input', () => renderPasswordRules(signupForm, pwRules));
+wirePasswordPeek('[data-action="toggle-signup-password"]', signupForm);
 
 signupForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -3020,8 +3033,97 @@ signupForm.addEventListener('submit', async (event) => {
 
   // Supabase confirms by email by default, so this is not yet a session.
   signupForm.reset();
-  renderPasswordRules();
+  renderPasswordRules(signupForm, pwRules);
   signupNote(`Account created. Check ${value('email')} for a confirmation link.`, 'is-ok');
+});
+
+// --- forgotten passwords ---------------------------------------------------
+//
+// Two steps on one page: ask for the link, then set the new password after
+// following it. `recoveryMode` is which of the two is showing, and it is only
+// ever turned on by arriving back from a recovery email.
+
+let recoveryMode = false;
+
+function resetNote(text, kind = '') {
+  resetMsg.textContent = text;
+  resetMsg.className = kind ? `account-msg ${kind}` : 'account-msg';
+  resetMsg.hidden = !text;
+}
+
+function renderResetPage() {
+  const ready = isConfigured();
+  resetUnset.hidden = ready;
+  resetRequestForm.hidden = !ready || recoveryMode;
+  resetNewForm.hidden = !ready || !recoveryMode;
+
+  resetTitle.textContent = recoveryMode ? 'Choose a new password' : 'Reset your password';
+  resetSub.textContent = recoveryMode
+    ? 'This link signed you in. Set a new password to finish.'
+    : 'We will email you a link to set a new one.';
+}
+
+resetNewForm.addEventListener('input', () => renderPasswordRules(resetNewForm, resetRules));
+wirePasswordPeek('[data-action="toggle-reset-password"]', resetNewForm);
+
+resetRequestForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const email = resetRequestForm.elements.email.value.trim();
+  if (!email) {
+    resetNote('Enter your email address first.', 'is-error');
+    return;
+  }
+
+  resetNote('Sending…');
+  const { error } = await requestPasswordReset(email);
+
+  if (error) {
+    resetNote(error, 'is-error');
+    return;
+  }
+
+  // Deliberately the same answer whether or not that address has an account:
+  // a different one would let anyone test which emails are registered here.
+  resetRequestForm.reset();
+  resetNote(`If ${email} has an account, a reset link is on its way.`, 'is-ok');
+});
+
+resetNewForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const password = resetNewForm.elements.password.value;
+  if (!passwordOk(password)) {
+    resetNote('That password does not meet all three rules yet.', 'is-error');
+    resetNewForm.elements.password.focus();
+    return;
+  }
+
+  resetNote('Updating…');
+  const { error } = await updatePassword(password);
+
+  if (error) {
+    // Supabase's messages are usually written for people, but this one is not
+    // — and it is the one a user actually hits, by leaving the page open until
+    // the recovery session lapses. It needs to say what to do next.
+    const stale = /session|jwt|token/i.test(error);
+    recoveryMode = !stale;
+    resetNote(
+      stale ? 'That reset link is no longer valid. Request a new one.' : error,
+      'is-error',
+    );
+    if (stale) renderResetPage();
+    return;
+  }
+
+  // The recovery link already signed them in, so there is nothing left to do
+  // here and they go back to what they were doing.
+  recoveryMode = false;
+  resetNewForm.reset();
+  renderPasswordRules(resetNewForm, resetRules);
+  resetNote('');
+  repaint();
+  leaveAuthPage();
 });
 
 /** A dropdown that stays open behind you is a bug, so it closes on both. */
@@ -3133,10 +3235,11 @@ for (const sel of ['[data-action="sign-out"]', '[data-action="sign-out-menu"]'])
 // a view change rather than a page load, which is the point: a page load would
 // run reconcileOpenRun() and silently pause a running timer every time you
 // looked at another page.
-const PAGES = ['tasks', 'assignments', 'progress', 'account', 'signup', 'settings'];
+const PAGES = ['tasks', 'assignments', 'progress', 'account', 'signup', 'reset', 'settings'];
 const PAGE_TITLES = {
   tasks: 'My Tasks', assignments: 'My Assignments', progress: 'Progress',
-  account: 'Account', signup: 'Create an account', settings: 'Settings',
+  account: 'Account', signup: 'Create an account',
+  reset: 'Reset your password', settings: 'Settings',
 };
 
 // Progress is a sub-page of Assignments, so that tab stays lit while on it.
@@ -3193,12 +3296,28 @@ addEventListener('hashchange', render);
 // has been created and exchanged them for a session — clearing them first is
 // what silently dropped every Google sign-in.
 const redirect = authRedirectInfo();
+
+// Recovery and Google both come back with the same `?code=` and both
+// establish a session. The `#reset` hash in the recovery link's redirectTo is
+// what tells them apart, so it is read before anything rewrites the URL.
+const returningFromRecovery = redirect.present && location.hash.startsWith('#reset');
+if (returningFromRecovery) recoveryMode = true;
+
 if (redirect.present) readReturnAfterRedirect();
 
 // Navigation is deliberately *not* done here. This fires on every session
 // restore too, so redirecting from it would bounce anyone who opened the
 // account page on purpose from the Profile menu.
-onAuthChange((user) => { authUser = user; repaint(); });
+onAuthChange((user, event) => {
+  authUser = user;
+  // Belt and braces: Supabase names the event too, in case a provider ever
+  // returns without the hash surviving.
+  if (event === 'PASSWORD_RECOVERY') {
+    recoveryMode = true;
+    location.hash = '#reset';
+  }
+  repaint();
+});
 
 currentUser().then((user) => {
   authUser = user;
@@ -3206,12 +3325,20 @@ currentUser().then((user) => {
   if (redirect.present) {
     // The client has read the URL by now, so the parameters can go — and the
     // hash goes straight to the destination rather than via the sign-in page.
-    clearAuthParams(user ? returnTo : '#account');
+    clearAuthParams(
+      returningFromRecovery ? '#reset' : (user ? returnTo : '#account'),
+    );
 
     // A provider that refuses says why. Swallowing it is what made a failed
     // sign-in look like nothing happening at all.
-    if (redirect.error) accountNote(redirect.error, 'is-error');
-    else if (!user) accountNote('That sign-in did not complete. Please try again.', 'is-error');
+    if (redirect.error) {
+      (returningFromRecovery ? resetNote : accountNote)(redirect.error, 'is-error');
+    } else if (!user && !returningFromRecovery) {
+      accountNote('That sign-in did not complete. Please try again.', 'is-error');
+    } else if (!user && returningFromRecovery) {
+      recoveryMode = false;
+      resetNote('That reset link has expired. Request a new one.', 'is-error');
+    }
   }
 
   repaint();

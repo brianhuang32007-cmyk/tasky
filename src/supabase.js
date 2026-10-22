@@ -94,7 +94,7 @@ export async function onAuthChange(handler) {
 
   try {
     const supabase = await client();
-    supabase.auth.onAuthStateChange((_event, session) => handler(session?.user ?? null));
+    supabase.auth.onAuthStateChange((event, session) => handler(session?.user ?? null, event));
   } catch {
     // An unreachable CDN is reported by the page that tried to sign in, not here.
   }
@@ -151,3 +151,18 @@ export const signInWithGoogle = () =>
   }));
 
 export const signOut = () => attempt((s) => s.auth.signOut());
+
+/**
+ * Sends the recovery link. The redirect carries `#reset` in the hash, which
+ * is what lets the app tell a recovery apart from a Google sign-in on the way
+ * back in — both return with the same `?code=` and both establish a session,
+ * so the destination is the only reliable signal.
+ */
+export const requestPasswordReset = (email) =>
+  attempt((s) => s.auth.resetPasswordForEmail(email, {
+    redirectTo: `${location.origin}${location.pathname}#reset`,
+  }));
+
+/** Valid only while the recovery session from that link is active. */
+export const updatePassword = (password) =>
+  attempt((s) => s.auth.updateUser({ password }));

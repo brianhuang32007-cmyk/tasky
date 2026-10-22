@@ -1542,6 +1542,8 @@ body:has(.page[data-page="progress"]:not([hidden]))::after { opacity: 0.64; }
 .when-date::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.75; }
 .when-date::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 
+.account-forgot { margin: 14px 0 0; text-align: center; font-size: 13.5px; }
+
 /* --- narrow windows ------------------------------------------------------
    Once the bar cannot hold the mark and the nav on one line, it stacks and
    centres. The caption goes first: it is the only part that is decoration. */
