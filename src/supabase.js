@@ -43,22 +43,37 @@ function client() {
 
 /**
  * Supabase hands the session back in the URL after an OAuth round trip — as
- * `?code=` under PKCE, or `#access_token=` under the implicit flow. This app
- * routes on the hash, so either one has to be cleared once the library has
- * read it, or the router would try to open a page called `access_token`.
+ * `?code=` under PKCE, or `#access_token=` under the implicit flow.
+ *
+ * Reading and clearing are two separate steps *on purpose*. The client reads
+ * the URL when it is created, and it is created lazily, so anything that
+ * strips the parameters before then destroys the session instead of tidying
+ * up after it. This only reports; clearAuthParams() does the tidying, and the
+ * caller must not run it until the client has had its turn.
  */
-export function cleanAuthRedirect() {
+export function authRedirectInfo() {
+  const query = new URL(location.href).searchParams;
+  const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
+
+  const error = query.get('error_description') || hash.get('error_description');
+  const present = query.has('code') || hash.has('access_token') || Boolean(error);
+
+  return { present, error };
+}
+
+/**
+ * Takes the auth parameters back out of the address bar once they have been
+ * consumed, and points the hash wherever the caller wants to land. The app
+ * routes on the hash, so leaving `access_token` there would have the router
+ * trying to open a page by that name.
+ */
+export function clearAuthParams(targetHash) {
   const url = new URL(location.href);
-  const hadCode = url.searchParams.has('code') || url.searchParams.has('error_description');
-  const hadToken = /access_token=|error_description=/.test(location.hash);
-
-  if (!hadCode && !hadToken) return false;
-
-  url.searchParams.delete('code');
-  url.searchParams.delete('error_description');
-  url.hash = '#account';
+  for (const key of ['code', 'state', 'error', 'error_code', 'error_description']) {
+    url.searchParams.delete(key);
+  }
+  url.hash = targetHash || '#account';
   history.replaceState(null, '', url.toString());
-  return true;
 }
 
 /** The current session, or null. Never throws — callers render either way. */

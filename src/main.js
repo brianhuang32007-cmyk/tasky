@@ -11,7 +11,7 @@ import { emptyState, load, save, subscribe } from './storage.js';
 import { buildDailySummary, dailySummaryFilename } from './report.js';
 import { TAG_COLOURS, TAG_NAME_LIMIT, colourHex } from './tags.js';
 import {
-  isConfigured, cleanAuthRedirect, currentUser, onAuthChange,
+  isConfigured, authRedirectInfo, clearAuthParams, currentUser, onAuthChange,
   signIn, signUp, signInWithGoogle, signOut,
 } from './supabase.js';
 import {
@@ -3218,8 +3218,11 @@ addEventListener('hashchange', render);
 
 // A Google round trip comes back with the session in the URL, which would
 // otherwise be read as a route. Cleared before the router ever sees it.
-const returningFromProvider = cleanAuthRedirect();
-if (returningFromProvider) readReturnAfterRedirect();
+// Only *read* here. The parameters have to survive until the Supabase client
+// has been created and exchanged them for a session — clearing them first is
+// what silently dropped every Google sign-in.
+const redirect = authRedirectInfo();
+if (redirect.present) readReturnAfterRedirect();
 
 // Navigation is deliberately *not* done here. This fires on every session
 // restore too, so redirecting from it would bounce anyone who opened the
@@ -3228,10 +3231,19 @@ onAuthChange((user) => { authUser = user; repaint(); });
 
 currentUser().then((user) => {
   authUser = user;
+
+  if (redirect.present) {
+    // The client has read the URL by now, so the parameters can go — and the
+    // hash goes straight to the destination rather than via the sign-in page.
+    clearAuthParams(user ? returnTo : '#account');
+
+    // A provider that refuses says why. Swallowing it is what made a failed
+    // sign-in look like nothing happening at all.
+    if (redirect.error) accountNote(redirect.error, 'is-error');
+    else if (!user) accountNote('That sign-in did not complete. Please try again.', 'is-error');
+  }
+
   repaint();
-  // The one exception: arriving back from a provider means a sign-in just
-  // completed, so it is handled like any other completed sign-in.
-  if (user && returningFromProvider) leaveAuthPage();
 });
 
 reconcileOpenRun();
